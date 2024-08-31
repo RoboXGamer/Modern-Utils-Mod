@@ -1,0 +1,12 @@
+{
+  "item.tutorialmod.example_item": "Example Item",
+  "block.tutorialmod.example_block": "Example Block",
+  "block.tutorialmod.magic_block": "Magic Block",
+  "block.tutorialmod.mechanical_crafter_block": "Mechanical Crafter",
+  "creativetab.tutorialmod.tab": "Tutorial Mod",
+  "config.jade.plugin_tutorialmod.data": "Speed",
+  "tooltip.tutorialmod.data": "Speed: %s",
+  "gui.tutorialmod.mechanical_crafter_screen": "Mechanical Crafter",
+  "gui.tutorialmod.mechanical_crafter_screen.button_text": "Click Me!",
+  "tutorialmod.jei_plugin": "Tutorial Mod JEI Plugin"
+}

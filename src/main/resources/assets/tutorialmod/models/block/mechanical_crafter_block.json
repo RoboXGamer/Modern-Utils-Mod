@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "tutorialmod:block/autocraft",
+    "down": "tutorialmod:block/interact_back",
+    "north": "tutorialmod:block/autocraft_side",
+    "east": "tutorialmod:block/autocraft_side",
+    "south": "tutorialmod:block/autocraft_side",
+    "west": "tutorialmod:block/autocraft_side",
+    "particle": "tutorialmod:block/autocraft_side"
+  }
+}
