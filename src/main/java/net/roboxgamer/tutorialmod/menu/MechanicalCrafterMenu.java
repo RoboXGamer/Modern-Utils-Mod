@@ -75,12 +75,10 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     }
     //add input slots
     for (int col = 0; col < INPUT_SLOTS_COUNT; col++) {
-      System.out.print("INPUT_SLOT (" + col + ") ");
       this.addSlot(new SlotItemHandler(inputItemHandler, col, 8 + col * 18, inputSlotsYStart));
     }
     // add output slots
     for (int col = 0; col < OUTPUT_SLOTS_COUNT; col++) {
-      System.out.print("OUTPUT_SLOT (" + col + ") ");
       this.addSlot(new SlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart));
     }
   }

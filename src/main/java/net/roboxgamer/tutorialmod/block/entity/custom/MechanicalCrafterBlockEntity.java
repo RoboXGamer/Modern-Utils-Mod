@@ -110,50 +110,58 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public void tick() {
 //    TODO: Ticking logic
     this.tc++;
-    if (this.tc == 20*60) this.tc = 0;
+    if (this.tc == 20 * 60) this.tc = 0;
     
     Level level = this.getLevel();
     if (level == null) return;
-    if (!level.isClientSide()){
-      if (level instanceof ServerLevel slevel){
+    if (!level.isClientSide()) {
+      if (level instanceof ServerLevel slevel) {
         BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
-        //if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-        //  ItemStackHandler inputSlots = be.getInputSlotsItemHandler();
-        //  ItemStackHandler outputSlots = be.getOutputSlotsItemHandler();
-        //  var item = inputSlots.getStackInSlot(0);
-        //  //TutorialMod.LOGGER.info("Input: {} Count: {}", item.getItem(),item.getCount());
-        //  //TutorialMod.LOGGER.info("Output: {}", outputSlots.getStackInSlot(0).getItem());
-        //}
-        //if (everySecond()) {
-        //  if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
-        ////  TODO: Logic for crafting
-        //  ItemStackHandler inputSlots = be.getInputSlotsItemHandler();
-        //  ItemStackHandler outputSlots = be.getOutputSlotsItemHandler();
-        //  ItemStack input = inputSlots.getStackInSlot(0);
-        ////  Assuming the crafting recipe of oak_logs to oak_planks
-        //
-        //  ItemStack result = new ItemStack(Blocks.OAK_PLANKS,4);
-        //  if (inputSlots.getStackInSlot(0).isEmpty()) return;
-        //  if (inputSlots.getStackInSlot(0).getItem() != Blocks.OAK_LOG.asItem()) return;
-        //
-        //  ItemStack output = outputSlots.getStackInSlot(0);
-        //  if (output.isEmpty()) {
-        //    outputSlots.setStackInSlot(0,result);
-        //  }
-        //  else{
-        //    if (output.getItem() == result.getItem()) {
-        //      output.grow(4);
-        //      outputSlots.setStackInSlot(0,output);
-        //    }
-        //  }
-        //
-        //  input.shrink(1);
-        //  inputSlots.setStackInSlot(0,input);
-        //
-        //}
+        if (everySecond()) {
+          if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
+          //  TODO: Logic for crafting
+          ItemStackHandler inputSlots = be.getInputSlotsItemHandler();
+          ItemStackHandler outputSlots = be.getOutputSlotsItemHandler();
+          ItemStack input = inputSlots.getStackInSlot(0);
+          //  Assuming the crafting recipe of oak_logs to oak_planks
+          boolean toCraft = false;
+          var slot = -1;
+          ItemStack result = new ItemStack(Blocks.OAK_PLANKS, 4);
+          for (int i = 0; i < inputSlots.getSlots(); i++) {
+            ItemStack stack = inputSlots.getStackInSlot(i);
+            if (stack.isEmpty()) continue;
+            if (stack.getItem() != Blocks.OAK_LOG.asItem()) continue;
+            //  Assuming the crafting recipe of oak_logs to oak_planks
+            toCraft = true;
+            slot = i;
+            break;
+          }
+          if (!toCraft) return;
+          for (int i = 0; i < outputSlots.getSlots(); i++) {
+            ItemStack stack = outputSlots.getStackInSlot(i);
+            if (stack.isEmpty()) {
+              outputSlots.setStackInSlot(i, result);
+              toCraft = false;
+              break;
+            }
+            if (stack.getItem() == result.getItem()) {
+              if (stack.getCount() < stack.getMaxStackSize()) {
+                stack.grow(4);
+                outputSlots.setStackInSlot(i, stack);
+                toCraft = false;
+                break;
+              }
+            }
+          }
+          if (toCraft) return;
+          //  Consume input
+          var iStack = inputSlots.getStackInSlot(slot);
+          iStack.shrink(1);
+          inputSlots.setStackInSlot(slot, iStack);
+        }
       }
+      //level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
     }
-    //level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
   }
   
   
