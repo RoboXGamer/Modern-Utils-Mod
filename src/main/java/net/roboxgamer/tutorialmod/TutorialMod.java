@@ -85,7 +85,7 @@ public class TutorialMod {
     event.registerBlockEntity(
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
-        (myBlockEntity, side) -> myBlockEntity.getInputSlotsItemHandler()
+        (be,side) -> be.getInputSlotsItemHandler()
     );
   }
 

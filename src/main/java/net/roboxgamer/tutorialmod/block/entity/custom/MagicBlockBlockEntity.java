@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
+import org.jetbrains.annotations.NotNull;
 
 public class MagicBlockBlockEntity extends BlockEntity {
   private int tc = 0;
@@ -22,13 +23,13 @@ public class MagicBlockBlockEntity extends BlockEntity {
   }
   
   @Override
-  protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+  protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.loadAdditional(tag, registries);
     this.speed = tag.getInt("speed");
   }
   
   @Override
-  protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+  protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.saveAdditional(tag, registries);
     tag.putInt("speed", this.speed);
   }

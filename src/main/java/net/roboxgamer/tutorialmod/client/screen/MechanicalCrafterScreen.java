@@ -120,9 +120,19 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     //renderTransparentBackground(guiGraphics);
     //this.renderScreen(guiGraphics, mouseX, mouseY, partialTick);
     //this.renderWidgets(guiGraphics, mouseX, mouseY, partialTick);
+
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
-    
+
   }
+  //public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+  //  super.render(guiGraphics, mouseX, mouseY, partialTick);
+  //  renderBlurredBackground(partialTick);
+  //  guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+  //  for (Renderable renderable : this.renderables) {
+  //    renderable.render(guiGraphics, mouseX, mouseY, partialTick);
+  //  }
+  //}
+  
   
   public @Nullable IGuiProperties getGuiProperties() {
     var minecraft = Minecraft.getInstance();
