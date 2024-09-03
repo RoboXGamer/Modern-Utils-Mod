@@ -11,6 +11,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -92,6 +93,9 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private void handleButtonClick(Button button) {
     TutorialMod.LOGGER.info("Button Clicked!");
     //  Button logic here
+    if (this.blockEntity.getLevel() instanceof ServerLevel slevel) {
+      this.blockEntity.recheckRecipe(slevel);
+    }
   }
   
   private void renderScreen(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {

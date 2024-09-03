@@ -27,8 +27,9 @@ import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
@@ -36,6 +37,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private int tc = 0;
   private CraftingRecipe recipe;
+  private ItemStack result;
   
   public class CustomItemStackHandler extends ItemStackHandler {
     public CustomItemStackHandler(int size) {
@@ -49,6 +51,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     public NonNullList<ItemStack> getStacks() {
       return this.stacks;
+    }
+    
+    public NonNullList<ItemStack> getStacksCopy() {
+      var t = NonNullList.withSize(this.stacks.size(), ItemStack.EMPTY);
+      for (int i = 0; i < this.stacks.size(); i++) {
+        t.set(i, this.stacks.get(i).copy());
+      }
+      return t;
     }
     
     public boolean isCompletelyEmpty() {
@@ -81,16 +91,23 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     @Override
     protected void onContentsChanged(int slot) {
       super.onContentsChanged(slot);
+      if (slot == 0) return;
       Level level = MechanicalCrafterBlockEntity.this.getLevel();
       if (level == null) return;
       if (level.isClientSide()) return;
       if (!(level instanceof ServerLevel slevel)) return;
       BlockEntity blockEntity = slevel.getBlockEntity(MechanicalCrafterBlockEntity.this.getBlockPos());
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
-      be.hasValidRecipe(slevel);
       be.recipe = be.getRecipe(slevel);
+      be.result = be.getResult(slevel);
+      be.craftingSlots.setStackInSlot(0, be.result);
     }
   };
+  
+  private ItemStack getResult(ServerLevel slevel) {
+    if (this.recipe == null) return ItemStack.EMPTY;
+    return this.recipe.getResultItem(slevel.registryAccess()).copy();
+  }
   
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
@@ -149,19 +166,27 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.tc++;
     if (this.tc == 20 * 60) this.tc = 0;
     
-    if (this.tc == 1) this.recipe = getRecipe((ServerLevel) this.level);
-    
     Level level = this.getLevel();
     if (level == null) return;
     if (level.isClientSide()) return;
     if (!(level instanceof ServerLevel slevel)) return;
+    
+    if (this.tc == 1) {
+      this.recipe = getRecipe((ServerLevel) this.level);
+      if (this.recipe != null) {
+        this.result = this.recipe.getResultItem(level.registryAccess()).copy();
+        this.craftingSlots.setStackInSlot(0, this.result);
+      }
+    }
+    
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
     if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
     
     // *** Logic for crafting ***
     
     if (canCraft()) {
-      craft(slevel);
+      TutorialMod.LOGGER.info("Can Craft!");
+      //craft(slevel);
     }
     
     
@@ -230,112 +255,121 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private CraftingRecipe getRecipe(ServerLevel level) {
     if (this.craftingSlots.isCompletelyEmpty()) return null;
     RecipeManager recipes = level.getRecipeManager();
-    CraftingInput input = CraftingInput.of(3,3,this.craftingSlots.getStacks());
     RecipeType<CraftingRecipe> recipeType = RecipeType.CRAFTING;
-    Optional<RecipeHolder<CraftingRecipe>> optionalRecipe = recipes.getRecipeFor(recipeType, input, level);
-    var foundRecipe = optionalRecipe.map(RecipeHolder::value).orElse(null);
-    if (foundRecipe == null){
-      //this.craftingSlots.setStackInSlot(0, ItemStack.EMPTY);
+    var l = this.craftingSlots.getStacks();
+    NonNullList<ItemStack> l2 = NonNullList.withSize(l.size(), ItemStack.EMPTY);
+    for (int i = 1; i < l.size(); i++) {
+      l2.set(i-1, l.get(i));
+    }
+    TutorialMod.LOGGER.info("l2: {}", l2);
+    CraftingInput input = CraftingInput.of(3,3,l2);
+    List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(recipeType, input, level);
+    if (list.isEmpty()) return null;
+    RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst();
+    TutorialMod.LOGGER.info("foundRecipe: {}", foundRecipe);
+    ItemStack result = foundRecipe.value().getResultItem(level.registryAccess()).copy();
+    TutorialMod.LOGGER.info("result: {}", result);
+    if (result.isEmpty()){
       return null;
     }
-    ItemStack result = optionalRecipe
-        .map(RecipeHolder::value)
-        .map(e -> e.assemble(input, level.registryAccess()))
-        .orElse(ItemStack.EMPTY);
-    if (result.isEmpty()) return null;
-    this.craftingSlots.setStackInSlot(0, result);
-    return foundRecipe;
-  }
-  private boolean hasValidRecipe(ServerLevel level) {
-    if (this.craftingSlots.isCompletelyEmpty()) {
-      return false;
-    }
-    
-    RecipeManager recipes = level.getRecipeManager();
-    CraftingInput input = CraftingInput.of(3,3,this.craftingSlots.getStacks());
-    
-    RecipeType<CraftingRecipe> recipeType = RecipeType.CRAFTING;
-    Optional<RecipeHolder<CraftingRecipe>> optionalRecipe = recipes.getRecipeFor(recipeType, input, level);
-    if (optionalRecipe.isPresent()) {
-      CraftingRecipe foundRecipe = optionalRecipe.get().value();
-      ItemStack result = foundRecipe.getResultItem(level.registryAccess());
-      
-      if (!result.isEmpty()) {
-        this.recipe = foundRecipe;
-        TutorialMod.LOGGER.info("Crafting Result: {}", result);
-        return true;
-      }
-    }
-    
-    this.recipe = null;
-    return false;
+    return foundRecipe.value();
   }
   
   private boolean canCraft() {
     // Check if we have necessary inputs and output space
-    // Check if all input slots are not empty
-    boolean isInputEmpty = this.inputSlots.isCompletelyEmpty();
-    if (isInputEmpty) return false;
+    if (this.inputSlots.isCompletelyEmpty()) return false;
     // Check if output slots are not full
-    boolean isOutputFull = this.outputSlots.isFull();
-    if (isOutputFull) return false;
-    if (this.recipe == null) return false;
-    // Check if the ingredients needed for the recipe are in the input slots
-    NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
-    for (Ingredient ingredient : ingredients) {
-      for (int i = 0; i < this.inputSlots.getSlots(); i++) {
-        if (this.inputSlots.getStackInSlot(i).isEmpty()) continue;
-        if (this.inputSlots.getStackInSlot(i).getItem() == ingredient.getItems()[0].getItem()) {
-          if (this.inputSlots.getStackInSlot(i).getCount() >= ingredient.getItems()[0].getCount()) {
-            return true;
-          }
-        }
-      }
+    if (this.outputSlots.isFull()) return false;
+    if (this.recipe == null || this.result == null){
+      return false;
     }
+    else if (this.result.isEmpty()){
+      return false;
+    }
+    NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
+    // make a copy of the ingredients list to avoid concurrent modification
+    List<ItemStack[]> ig = new ArrayList<>();
+    ingredients.forEach(
+        e -> ig.add(e.getItems().clone())
+    );
+    var input = this.inputSlots.getStacksCopy();
+    var l = ig.stream().flatMap(Arrays::stream).toList();
+    l.forEach(
+        item -> {
+          input.forEach(
+              inputItem -> {
+                if (inputItem.isEmpty()) return;
+                if (inputItem.getItem() == item.getItem()) {
+                  if (inputItem.getCount() >= item.getCount()) {
+                    inputItem.shrink(item.getCount());
+                    item.setCount(0);
+                  }else{
+                    item.shrink(inputItem.getCount());
+                    inputItem.setCount(0);
+                  }
+                }
+              }
+          );
+        }
+    );
+    // Check now if all the ingredients were satisfied
+    var inputUsed = l.stream().allMatch(ItemStack::isEmpty);
+    TutorialMod.LOGGER.debug("inputUsed: {}", inputUsed);
+    
+    //  Check if the ingredients needed for the recipe are in the input slots
+    //TutorialMod.LOGGER.debug("Ingredients: {}", ingredients);
     return false;
+  }
+  public void recheckRecipe(ServerLevel level) {
+    this.recipe = getRecipe(level);
+    if (this.recipe == null){
+      this.result = ItemStack.EMPTY;
+      return;
+    }
+    this.result = this.recipe.getResultItem(level.registryAccess()).copy();
+    this.craftingSlots.setStackInSlot(0, this.result);
+    setChanged();
   }
   
   private void craft(ServerLevel level) {
   //  Take the items out of the input
-    boolean takenOutInput = false;
-    for (int i = 0; i < this.inputSlots.getSlots(); i++) {
-      if (this.inputSlots.getStackInSlot(i).isEmpty()) continue;
-      for (Ingredient ingredient : this.recipe.getIngredients()) {
-        ItemStack inputItemStack = this.inputSlots.getStackInSlot(i);
-        ItemStack ingredientItemStack = ingredient.getItems()[0];
-        int inputCount = inputItemStack.getCount();
-        int ingredientCount = ingredientItemStack.getCount();
-        if (inputItemStack.getItem() == ingredientItemStack.getItem()) {
-          if (inputCount >= ingredientCount) {
-            this.inputSlots.getStackInSlot(i).shrink(ingredientCount);
-            takenOutInput = true;
-            break;
-          }
-        }
-      }
-      if (takenOutInput) break;
-    }
-    ItemStack result = this.recipe.getResultItem(level.registryAccess());
+    List<Ingredient> ingredients = this.recipe.getIngredients();
+    ingredients.forEach(
+        ingredient -> Arrays.stream(ingredient.getItems()).forEach(
+            itemStack -> {
+            //  Here this is the itemStack of the ingredient to remove
+              this.inputSlots.getStacks().forEach(
+                  inputItemStack -> {
+                    //  Here this is the itemStack of the input slot
+                    if (inputItemStack.isEmpty()) return;
+                    if (inputItemStack.getItem() == itemStack.getItem()) {
+                      if (inputItemStack.getCount() >= itemStack.getCount()) {
+                        inputItemStack.shrink(itemStack.getCount());
+                      }else{
+                        itemStack.shrink(inputItemStack.getCount());
+                        inputItemStack.setCount(0);
+                      }
+                    }
+                  }
+              );
+            }
+        )
+    );
     //  Put the result in the output
     for (int i = 0; i < this.outputSlots.getSlots(); i++) {
       if (this.outputSlots.getStackInSlot(i).isEmpty()) {
-        this.outputSlots.setStackInSlot(i, result);
+        this.outputSlots.setStackInSlot(i, this.result.copy());
         break;
+      }
+      else if (this.outputSlots.getStackInSlot(i).getItem() == this.result.getItem()) {
+        if (this.outputSlots.getStackInSlot(i).getCount() < this.outputSlots.getStackInSlot(i).getMaxStackSize()) {
+          this.outputSlots.getStackInSlot(i).grow(this.result.getCount());
+          break;
+        }
       }
     }
     setChanged();
-    resetCrafting();
   }
-  
-  
-  
-  private void resetCrafting() {
-    // Clear current recipe and reset progress
-    this.recipe = null;
-  }
-    
-  
-  
   
   private boolean everySecond() {
     return this.tc % 20 == 0;
