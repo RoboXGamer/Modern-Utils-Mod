@@ -185,8 +185,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // *** Logic for crafting ***
     
     if (canCraft()) {
-      TutorialMod.LOGGER.info("Can Craft!");
-      //craft(slevel);
+      //TutorialMod.LOGGER.info("Can Craft!");
+      craft(slevel);
     }
     
     
@@ -288,13 +288,15 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
     // make a copy of the ingredients list to avoid concurrent modification
-    List<ItemStack[]> ig = new ArrayList<>();
+    List<ItemStack> ig = new ArrayList<>();
     ingredients.forEach(
-        e -> ig.add(e.getItems().clone())
+        e -> Arrays.stream(e.getItems()).forEach(
+            item -> ig.add(item.copy())
+        )
     );
+    //TutorialMod.LOGGER.debug("ig: {}", ig);
     var input = this.inputSlots.getStacksCopy();
-    var l = ig.stream().flatMap(Arrays::stream).toList();
-    l.forEach(
+    ig.forEach(
         item -> {
           input.forEach(
               inputItem -> {
@@ -313,12 +315,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         }
     );
     // Check now if all the ingredients were satisfied
-    var inputUsed = l.stream().allMatch(ItemStack::isEmpty);
-    TutorialMod.LOGGER.debug("inputUsed: {}", inputUsed);
-    
-    //  Check if the ingredients needed for the recipe are in the input slots
-    //TutorialMod.LOGGER.debug("Ingredients: {}", ingredients);
-    return false;
+    var inputUsed = ig.stream().allMatch(ItemStack::isEmpty);
+    //TutorialMod.LOGGER.debug("inputUsed: {}", inputUsed);
+    return inputUsed;
   }
   public void recheckRecipe(ServerLevel level) {
     this.recipe = getRecipe(level);
@@ -333,38 +332,56 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private void craft(ServerLevel level) {
   //  Take the items out of the input
-    List<Ingredient> ingredients = this.recipe.getIngredients();
-    ingredients.forEach(
-        ingredient -> Arrays.stream(ingredient.getItems()).forEach(
-            itemStack -> {
-            //  Here this is the itemStack of the ingredient to remove
-              this.inputSlots.getStacks().forEach(
-                  inputItemStack -> {
-                    //  Here this is the itemStack of the input slot
-                    if (inputItemStack.isEmpty()) return;
-                    if (inputItemStack.getItem() == itemStack.getItem()) {
-                      if (inputItemStack.getCount() >= itemStack.getCount()) {
-                        inputItemStack.shrink(itemStack.getCount());
-                      }else{
-                        itemStack.shrink(inputItemStack.getCount());
-                        inputItemStack.setCount(0);
-                      }
-                    }
-                  }
-              );
-            }
+    List<Ingredient> ingList = this.recipe.getIngredients();
+    List<ItemStack> ingredients = new ArrayList<>();
+    ingList.forEach(
+        ing -> Arrays.stream(ing.getItems()).forEach(
+            item -> ingredients.add(item.copy())
         )
     );
+    var input = this.inputSlots.getStacks();
+    ingredients.forEach(
+        item -> {
+          input.forEach(
+              inputItem -> {
+                if (inputItem.isEmpty()) return;
+                if (inputItem.getItem() == item.getItem()) {
+                  if (inputItem.getCount() >= item.getCount()) {
+                    inputItem.shrink(item.getCount());
+                    item.setCount(0);
+                  }else{
+                    item.shrink(inputItem.getCount());
+                    inputItem.setCount(0);
+                  }
+                }
+              }
+          );
+        }
+    );
+    var inputUsed = ingredients.stream().allMatch(ItemStack::isEmpty);
+    if (!inputUsed) {
+      TutorialMod.LOGGER.debug("Crafting failed");
+      TutorialMod.LOGGER.debug("Ingredients: {}", ingredients);
+      return;
+    }
     //  Put the result in the output
+    var remainingCount = this.result.getCount();
     for (int i = 0; i < this.outputSlots.getSlots(); i++) {
-      if (this.outputSlots.getStackInSlot(i).isEmpty()) {
+      var outputSlot = this.outputSlots.getStackInSlot(i);
+      if (outputSlot.isEmpty()) {
         this.outputSlots.setStackInSlot(i, this.result.copy());
         break;
       }
-      else if (this.outputSlots.getStackInSlot(i).getItem() == this.result.getItem()) {
-        if (this.outputSlots.getStackInSlot(i).getCount() < this.outputSlots.getStackInSlot(i).getMaxStackSize()) {
-          this.outputSlots.getStackInSlot(i).grow(this.result.getCount());
-          break;
+      else if (outputSlot.getItem() == this.result.getItem()) {
+        if (outputSlot.getCount() < outputSlot.getMaxStackSize()) {
+          if (remainingCount > 0){
+            var grownCount = outputSlot.getMaxStackSize() - outputSlot.getCount();
+            outputSlot.grow(Math.min(remainingCount, grownCount));
+            remainingCount -= grownCount;
+          }
+          if (remainingCount <= 0) {
+            break;
+          }
         }
       }
     }
