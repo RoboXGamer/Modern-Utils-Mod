@@ -40,9 +40,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private ItemStack result;
   private NonNullList<ItemStack> remainingItems;
   
-  public @Nullable IItemHandler getCombinedInvWrapper() {
-    return this.combinedInvHandler;
-  }
+  public static final int INPUT_SLOTS_COUNT = 9;
+  public static final int OUTPUT_SLOTS_COUNT = 9;
+  public static final int CRAFT_RESULT_SLOT = 0;
+  public static final int[] CRAFT_RECIPE_SLOTS = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
   
   public class CustomItemStackHandler extends ItemStackHandler {
     public CustomItemStackHandler(int size) {
@@ -138,9 +139,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   CustomItemStackHandler outputSlots = new CustomItemStackHandler(9);
   CraftingSlotHandler craftingSlots = new CraftingSlotHandler(10);
   
-  Lazy<CustomItemStackHandler> inputSlotsLazy = Lazy.of(() -> new CustomItemStackHandler(inputSlots.getSlots()));
-  Lazy<CustomItemStackHandler> outputSlotsLazy = Lazy.of(() -> new CustomItemStackHandler(outputSlots.getSlots()));
-  
   //Combine handler of input and output slots
   CombinedInvWrapper combinedInvHandler = new CombinedInvWrapper(inputSlots, outputSlots) {
     
@@ -231,18 +229,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
   };
   
-  
-  Lazy<CombinedInvWrapper> combinedInvWrapperLazy = Lazy.of(() -> new CombinedInvWrapper(inputSlotsLazy.get(), outputSlotsLazy.get()));
-  
   private ItemStack getResult(ServerLevel slevel) {
     if (this.recipe == null) return ItemStack.EMPTY;
     return this.recipe.getResultItem(slevel.registryAccess()).copy();
   }
   
-  public static final int INPUT_SLOTS_COUNT = 9;
-  public static final int OUTPUT_SLOTS_COUNT = 9;
-  public static final int CRAFT_RESULT_SLOT = 0;
-  public static final int[] CRAFT_RECIPE_SLOTS = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
+  Lazy<CustomItemStackHandler> combinedInvHandlerLazy = Lazy.of(() -> new CustomItemStackHandler(combinedInvHandler.getSlots()));
   
   public MechanicalCrafterBlockEntity(BlockPos pos, BlockState blockState) {
     super(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(), pos, blockState);
@@ -287,7 +279,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   
   public void tick() {
-//    TODO: Ticking logic
+//  Ticking logic
     this.tc++;
     if (this.tc == 20 * 60) this.tc = 0;
     
@@ -296,14 +288,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (level.isClientSide()) return;
     if (!(level instanceof ServerLevel slevel)) return;
     
-    if (this.tc == 1) {
-      this.recipe = getRecipe((ServerLevel) this.level);
-      if (this.recipe != null) {
-        this.result = this.recipe.getResultItem(level.registryAccess()).copy();
-        this.craftingSlots.setStackInSlot(0, this.result);
-      }
-    }
-    
+    //if (this.tc == 1) {
+    //  this.recipe = getRecipe((ServerLevel) this.level);
+    //  if (this.recipe != null) {
+    //    this.result = this.recipe.getResultItem(level.registryAccess()).copy();
+    //    this.craftingSlots.setStackInSlot(0, this.result);
+    //  }
+    //}
+    //
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
     if (!(blockEntity instanceof MechanicalCrafterBlockEntity)) return;
     
@@ -568,6 +560,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private boolean everySecond() {
     return this.tc % 20 == 0;
+  }
+  
+  public @Nullable IItemHandler getCombinedInvWrapper() {
+    return this.combinedInvHandler;
   }
   
   CompoundTag getTutorialModData(HolderLookup.Provider registries) {
