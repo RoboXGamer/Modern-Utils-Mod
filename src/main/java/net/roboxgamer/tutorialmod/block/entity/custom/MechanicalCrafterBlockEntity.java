@@ -19,7 +19,10 @@ import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.util.Lazy;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
@@ -36,6 +39,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private CraftingRecipe recipe;
   private ItemStack result;
   private NonNullList<ItemStack> remainingItems;
+  
+  public @Nullable IItemHandler getCombinedInvWrapper() {
+    return this.combinedInvHandler;
+  }
   
   public class CustomItemStackHandler extends ItemStackHandler {
     public CustomItemStackHandler(int size) {
@@ -130,6 +137,102 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   CustomItemStackHandler inputSlots = new CustomItemStackHandler(9);
   CustomItemStackHandler outputSlots = new CustomItemStackHandler(9);
   CraftingSlotHandler craftingSlots = new CraftingSlotHandler(10);
+  
+  Lazy<CustomItemStackHandler> inputSlotsLazy = Lazy.of(() -> new CustomItemStackHandler(inputSlots.getSlots()));
+  Lazy<CustomItemStackHandler> outputSlotsLazy = Lazy.of(() -> new CustomItemStackHandler(outputSlots.getSlots()));
+  
+  //Combine handler of input and output slots
+  CombinedInvWrapper combinedInvHandler = new CombinedInvWrapper(inputSlots, outputSlots) {
+    
+    @Override
+    public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+      // Get the number of input slots
+      int inputSlotCount = inputSlots.getSlots();
+      
+      // Ensure the slot is within the total valid slot range
+      if (slot < 0 || slot >= getSlots()) {
+        return ItemStack.EMPTY; // Slot out of bounds, return empty
+      }
+      
+      // Check if the slot is within the outputSlots range
+      if (slot >= inputSlotCount) {
+        // Calculate the corresponding slot in the outputSlots handler
+        int outputSlot = slot - inputSlotCount;
+        
+        // Extract the item from the outputSlots handler
+        return outputSlots.extractItem(outputSlot, amount, simulate);
+      } else {
+        // If the slot is in the inputSlots, prevent extraction and return an empty ItemStack
+        return ItemStack.EMPTY;
+      }
+    }
+    
+    @Override
+    public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+      // Get the number of input slots
+      int inputSlotCount = inputSlots.getSlots();
+      
+      // Ensure the slot is within the total valid slot range
+      if (slot < 0 || slot >= getSlots()) {
+        return stack; // Slot out of bounds, return stack unchanged
+      }
+      
+      // Check if the slot is within the inputSlots range
+      if (slot < inputSlotCount) {
+        // Insert the item into the inputSlots handler
+        return inputSlots.insertItem(slot, stack, simulate);
+      } else {
+        // If the slot is in the outputSlots, prevent insertion and return the stack unchanged
+        return stack;
+      }
+    }
+    
+    @Override
+    public int getSlots() {
+      // The total number of slots is the sum of input and output slots
+      return inputSlots.getSlots() + outputSlots.getSlots();
+    }
+    
+    @Override
+    public int getSlotLimit(int slot) {
+      // Get the number of input slots
+      int inputSlotCount = inputSlots.getSlots();
+      
+      // Ensure the slot is within the total valid slot range
+      if (slot < 0 || slot >= getSlots()) {
+        return 0; // Invalid slot, return limit 0
+      }
+      
+      // Check if the slot is within the input or output slots and return their respective limits
+      if (slot < inputSlotCount) {
+        return inputSlots.getSlotLimit(slot); // Input slot
+      } else {
+        int outputSlot = slot - inputSlotCount;
+        return outputSlots.getSlotLimit(outputSlot); // Output slot
+      }
+    }
+    
+    @Override
+    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+      // Get the number of input slots
+      int inputSlotCount = inputSlots.getSlots();
+      
+      // Ensure the slot is within the total valid slot range
+      if (slot < 0 || slot >= getSlots()) {
+        return false; // Invalid slot, no item is valid
+      }
+      
+      // Check if the slot is within the input slots and allow only valid items for input slots
+      if (slot < inputSlotCount) {
+        return inputSlots.isItemValid(slot, stack); // Input slot
+      } else {
+        return false; // No item is valid for output slots
+      }
+    }
+  };
+  
+  
+  Lazy<CombinedInvWrapper> combinedInvWrapperLazy = Lazy.of(() -> new CombinedInvWrapper(inputSlotsLazy.get(), outputSlotsLazy.get()));
   
   private ItemStack getResult(ServerLevel slevel) {
     if (this.recipe == null) return ItemStack.EMPTY;
@@ -424,7 +527,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle remaining items
     remainingCount = 0;
     for (ItemStack remainingItem : this.remainingItems) {
-      TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
+      //TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
       if (remainingItem.isEmpty()) continue;
       //  Place in the input slot that is not full
