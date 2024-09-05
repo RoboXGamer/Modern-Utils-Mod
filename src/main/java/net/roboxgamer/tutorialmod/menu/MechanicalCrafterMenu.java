@@ -25,7 +25,6 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   //Server Constructor
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, BlockEntity blockEntity) {
     super(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), containerId);
-  //  TODO: Menu logic
     if (blockEntity instanceof MechanicalCrafterBlockEntity mechanicalCrafterBlockEntity) {
       this.blockEntity = mechanicalCrafterBlockEntity;
     }
@@ -63,14 +62,24 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     var outputSlotsYStart = 122;
     ItemStackHandler inputItemHandler = blockEntity.getInputSlotsItemHandler();
     ItemStackHandler outputItemHandler = blockEntity.getOutputSlotsItemHandler();
-    ItemStackHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
+    MechanicalCrafterBlockEntity.CraftingSlotHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
     //add result slot
-    this.addSlot(new SlotItemHandler(craftingItemHandler, CRAFT_RESULT_SLOT, 98, 36));
+    this.addSlot(new SlotItemHandler(craftingItemHandler, CRAFT_RESULT_SLOT, 98, 36){
+      @Override
+      public boolean mayPlace(@NotNull ItemStack stack) {
+        return false;
+      }
+    });
     //add recipe slots
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 3; col++) {
         this.addSlot(
-            new SlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18, 18 + row * 18));
+            new SlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18, 18 + row * 18){
+              @Override
+              public int getMaxStackSize() {
+                return 1;
+              }
+            });
       }
     }
     //add input slots
@@ -89,7 +98,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   }
   
   @Override
-  public ItemStack quickMoveStack(Player player, int index) {
+  public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
     return ItemStack.EMPTY;
   }
   
@@ -104,5 +113,3 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   
   
 }
-
-//

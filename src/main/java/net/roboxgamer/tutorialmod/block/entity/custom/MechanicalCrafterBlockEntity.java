@@ -19,7 +19,6 @@ import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.util.Lazy;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
@@ -30,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
+  private static final int RESULT_SLOT = 0;
   public Component TITLE = Component.translatable("block.tutorialmod.mechanical_crafter_block");
   
   private int tc = 0;
@@ -83,24 +83,53 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
   }
   
-  CustomItemStackHandler inputSlots = new CustomItemStackHandler(9);
-  CustomItemStackHandler outputSlots = new CustomItemStackHandler(9);
-  CustomItemStackHandler craftingSlots = new CustomItemStackHandler(10) {
-    @Override
-    protected void onContentsChanged(int slot) {
+  public class CraftingSlotHandler extends CustomItemStackHandler {
+    public CraftingSlotHandler(int size) {
+      super(size);
+    }
+    
+      @Override
+      protected void onContentsChanged(int slot) {
       super.onContentsChanged(slot);
       if (slot == 0) return;
       Level level = MechanicalCrafterBlockEntity.this.getLevel();
-      if (level == null) return;
-      if (level.isClientSide()) return;
-      if (!(level instanceof ServerLevel slevel)) return;
+      if (level == null || level.isClientSide() || !(level instanceof ServerLevel slevel)) return;
       BlockEntity blockEntity = slevel.getBlockEntity(MechanicalCrafterBlockEntity.this.getBlockPos());
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
       be.recipe = be.getRecipe(slevel);
       be.result = be.getResult(slevel);
-      be.craftingSlots.setStackInSlot(0, be.result);
+      if (be.craftingSlots.getStackInSlot(RESULT_SLOT).isEmpty() || !be.craftingSlots.getStackInSlot(RESULT_SLOT).is(be.result.getItem())) {
+        be.craftingSlots.setStackInSlot(0, be.result);
+      }
     }
-  };
+    
+    @Override
+    public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+      // Disallow extracting from the result slot
+      if (slot == RESULT_SLOT) return ItemStack.EMPTY;
+      return super.extractItem(slot, amount, simulate);
+    }
+    
+    @Override
+    public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+      if (stack.isEmpty())
+        return ItemStack.EMPTY;
+      validateSlotIndex(slot);
+      // Disallow inserting into the result slot
+      if (slot == RESULT_SLOT) return stack;
+      return super.insertItem(slot, stack, simulate);
+    }
+    
+    
+    @Override
+    public int getSlotLimit(int slot) {
+      return 1;
+    }
+  }
+  
+  CustomItemStackHandler inputSlots = new CustomItemStackHandler(9);
+  CustomItemStackHandler outputSlots = new CustomItemStackHandler(9);
+  CraftingSlotHandler craftingSlots = new CraftingSlotHandler(10);
   
   private ItemStack getResult(ServerLevel slevel) {
     if (this.recipe == null) return ItemStack.EMPTY;
@@ -111,11 +140,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public static final int OUTPUT_SLOTS_COUNT = 9;
   public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
-  
-  Lazy<ItemStackHandler> inputSlotsLazy = Lazy.of(() -> new ItemStackHandler(inputSlots.getSlots()));
-  Lazy<ItemStackHandler> outputSlotsLazy = Lazy.of(() -> new ItemStackHandler(outputSlots.getSlots()));
-  Lazy<ItemStackHandler> craftingSlotsLazy = Lazy.of(() -> new ItemStackHandler(craftingSlots.getSlots()));
-  
   
   public MechanicalCrafterBlockEntity(BlockPos pos, BlockState blockState) {
     super(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(), pos, blockState);
@@ -129,7 +153,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return this.outputSlots;
   }
   
-  public CustomItemStackHandler getCraftingSlotsItemHandler() {
+  public CraftingSlotHandler getCraftingSlotsItemHandler() {
     return this.craftingSlots;
   }
   
@@ -178,14 +202,16 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
-    if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
+    if (!(blockEntity instanceof MechanicalCrafterBlockEntity)) return;
     
     // *** Logic for crafting ***
     
-    if (canCraft()) {
-      //TutorialMod.LOGGER.info("Can Craft!");
-      craft(slevel);
-    }
+   if (everySecond()) {
+     if (canCraft()) {
+       //TutorialMod.LOGGER.info("Can Craft!");
+       craft();
+     }
+   }
     
     
     // REFERENCE CODE
@@ -279,9 +305,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Iterate over each ingredient in the recipe
     for (Ingredient ingredient : ingredients) {
       boolean matched = false;
+      if (ingredient.getItems().length == 0) continue;
       
       // Iterate over each item in the input slots
       for (ItemStack inputItem : input) {
+        if (inputItem.isEmpty()) continue;
         if (ingredient.test(inputItem)) {
           // Find the specific ingredient option that matches the input item
           for (ItemStack possibleMatch : ingredient.getItems()) {
@@ -295,7 +323,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
                 matched = true;
                 break;
               } else {
-                // If not enough, use all of the input item and continue
+                // If not enough, use all the input item and continue
                 requiredCount -= inputItem.getCount();
                 inputItem.setCount(0);
               }
@@ -363,12 +391,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // If all ingredients were matched and output slots can accommodate the result, return true
   }
   
-  private void craft(ServerLevel level) {
+  private void craft() {
     // Get the list of ingredients from the recipe
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
     
     // Now take the items out of the input
-    inputCheck(this.inputSlots.getStacks(), ingredients);
+    inputCheck(getInputStacks(), ingredients);
     
     // Put the result in the output
     ItemStack result = this.result.copy();

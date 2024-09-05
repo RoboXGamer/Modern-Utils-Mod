@@ -126,6 +126,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     //this.renderWidgets(guiGraphics, mouseX, mouseY, partialTick);
 
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
+    this.renderTooltip(guiGraphics, mouseX, mouseY);
 
   }
   //public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
