@@ -288,14 +288,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (level.isClientSide()) return;
     if (!(level instanceof ServerLevel slevel)) return;
     
-    //if (this.tc == 1) {
-    //  this.recipe = getRecipe((ServerLevel) this.level);
-    //  if (this.recipe != null) {
-    //    this.result = this.recipe.getResultItem(level.registryAccess()).copy();
-    //    this.craftingSlots.setStackInSlot(0, this.result);
-    //  }
-    //}
-    //
+    if (this.tc == 1) {
+      this.recipe = getRecipe((ServerLevel) this.level);
+      if (this.recipe != null) {
+        this.result = this.recipe.getResultItem(level.registryAccess()).copy();
+        this.craftingSlots.setStackInSlot(0, this.result);
+      }
+    }
+
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
     if (!(blockEntity instanceof MechanicalCrafterBlockEntity)) return;
     
