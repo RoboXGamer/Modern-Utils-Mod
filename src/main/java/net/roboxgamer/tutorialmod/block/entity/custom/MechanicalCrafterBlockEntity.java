@@ -110,23 +110,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         be.craftingSlots.setStackInSlot(0, be.result);
       }
     }
-    
-    @Override
-    public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-      // Disallow extracting from the result slot
-      if (slot == RESULT_SLOT) return ItemStack.EMPTY;
-      return super.extractItem(slot, amount, simulate);
-    }
-    
-    @Override
-    public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
-      if (stack.isEmpty())
-        return ItemStack.EMPTY;
-      validateSlotIndex(slot);
-      // Disallow inserting into the result slot
-      if (slot == RESULT_SLOT) return stack;
-      return super.insertItem(slot, stack, simulate);
-    }
   }
   
   CustomItemStackHandler inputSlots = new CustomItemStackHandler(9);
