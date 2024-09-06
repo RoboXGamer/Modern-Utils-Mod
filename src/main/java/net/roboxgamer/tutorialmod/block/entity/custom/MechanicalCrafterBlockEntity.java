@@ -127,12 +127,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (slot == RESULT_SLOT) return stack;
       return super.insertItem(slot, stack, simulate);
     }
-    
-    
-    @Override
-    public int getSlotLimit(int slot) {
-      return 1;
-    }
   }
   
   CustomItemStackHandler inputSlots = new CustomItemStackHandler(9);

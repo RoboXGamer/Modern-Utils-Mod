@@ -79,6 +79,16 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
               public int getMaxStackSize() {
                 return 1;
               }
+              
+              @Override
+              public boolean mayPickup(@NotNull Player playerIn) {
+                return true;
+              }
+              
+              @Override
+              public boolean mayPlace(@NotNull ItemStack stack) {
+                return true;
+              }
             });
       }
     }

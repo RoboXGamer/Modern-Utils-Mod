@@ -1,6 +1,7 @@
 package net.roboxgamer.tutorialmod;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -34,6 +35,14 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 public class TutorialMod {
   public static final String MODID = "tutorialmod";
   public static final Logger LOGGER = LogUtils.getLogger();
+  
+  public static ResourceLocation location(String path){
+    return ResourceLocation.fromNamespaceAndPath(MODID, path);
+  }
+  
+  public ResourceLocation location(String namespace, String path){
+    return ResourceLocation.fromNamespaceAndPath(namespace, path);
+  }
 
   public TutorialMod(IEventBus modEventBus, ModContainer modContainer) {
     // Register the commonSetup method for modloading
