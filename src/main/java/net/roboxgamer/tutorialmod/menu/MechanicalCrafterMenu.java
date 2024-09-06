@@ -4,6 +4,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -74,22 +75,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 3; col++) {
         this.addSlot(
-            new SlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18, 18 + row * 18){
-              @Override
-              public int getMaxStackSize() {
-                return 1;
-              }
-              
-              @Override
-              public boolean mayPickup(@NotNull Player playerIn) {
-                return true;
-              }
-              
-              @Override
-              public boolean mayPlace(@NotNull ItemStack stack) {
-                return true;
-              }
-            });
+            new CraftingGhostSlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18, 18 + row * 18));
       }
     }
     //add input slots
