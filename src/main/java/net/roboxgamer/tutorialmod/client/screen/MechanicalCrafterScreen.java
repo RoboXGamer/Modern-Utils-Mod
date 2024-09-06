@@ -3,21 +3,20 @@ package net.roboxgamer.tutorialmod.client.screen;
 import mezz.jei.api.gui.handlers.IGuiProperties;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Renderable;
-import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
+import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -80,22 +79,20 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     //  Widgets to add!
     
     this.button = addRenderableWidget(
-        Button.builder(
-                BUTTON_TEXT,
-                this::handleButtonClick
-            )
-            .bounds(this.leftPos + this.imageWidth - 56, this.topPos + 34, 50, 20)
-            .tooltip(Tooltip.create(BUTTON_TEXT))
-            .build()
-    );
+        new ImageButton(this.leftPos + this.imageWidth - 56,this.topPos + 34,20,20,
+                        new WidgetSprites(
+            TutorialMod.location("toggle_remain_btn"),
+            TutorialMod.location("toggle_remain_btn_disabled"),
+            TutorialMod.location("toggle_remain_btn_highlighted")
+    ),this::handleButtonClick,BUTTON_TEXT)
+            );
+    this.button.setTooltip(Tooltip.create(Component.literal("Toggles the input/output of the remaining items")));
   }
   
   private void handleButtonClick(Button button) {
-    TutorialMod.LOGGER.info("Button Clicked!");
-    //  Button logic here
-    if (this.blockEntity.getLevel() instanceof ServerLevel slevel) {
-      this.blockEntity.recheckRecipe(slevel);
-    }
+    var value = this.blockEntity.toggleRemainItemValue();
+    TutorialMod.LOGGER.debug("Toggled remainItemToggleValue to {}", value);
+    PacketDistributor.sendToServer(new RemainItemTogglePayload(value, this.blockEntity.getBlockPos()));
   }
   
   private void renderScreen(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {

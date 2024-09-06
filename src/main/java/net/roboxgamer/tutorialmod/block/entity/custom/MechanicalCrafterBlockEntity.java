@@ -34,7 +34,6 @@ import java.util.List;
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
   private static final int RESULT_SLOT = 0;
   public Component TITLE = Component.translatable("block.tutorialmod.mechanical_crafter_block");
-  
   private int tc = 0;
   private CraftingRecipe recipe;
   private ItemStack result;
@@ -44,6 +43,24 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public static final int OUTPUT_SLOTS_COUNT = 9;
   public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
+  private int remainItemToggleValue = 1;
+  
+  public int getRemainItemToggleValue() {
+    return this.remainItemToggleValue;
+  }
+  
+  public void setRemainItemToggleValue(int value){
+    this.remainItemToggleValue = value;
+  }
+  
+  public int toggleRemainItemValue() {
+    if (this.remainItemToggleValue == 0) {
+      this.remainItemToggleValue = 1;
+    } else {
+      this.remainItemToggleValue = 0;
+    }
+    return this.remainItemToggleValue;
+  }
   
   public class CustomItemStackHandler extends ItemStackHandler {
     public CustomItemStackHandler(int size) {
@@ -495,24 +512,25 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     // Handle remaining items
     remainingCount = 0;
+    var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
+    TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
     for (ItemStack remainingItem : this.remainingItems) {
       //TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
       if (remainingItem.isEmpty()) continue;
-      //  Place in the input slot that is not full
-      for (int j = 0; j < this.inputSlots.getSlots(); j++) {
-        ItemStack inputSlot = this.inputSlots.getStackInSlot(j);
-        if (inputSlot.is(remainingItem.getItem())) {
-          int spaceAvailable = inputSlot.getMaxStackSize() - inputSlot.getCount();
+      for (int j = 0; j < toPlaceIn.getSlots(); j++) {
+        ItemStack slot = toPlaceIn.getStackInSlot(j);
+        if (slot.is(remainingItem.getItem())) {
+          int spaceAvailable = slot.getMaxStackSize() - slot.getCount();
           int amountToAdd = Math.min(remainingCount, spaceAvailable);
-          inputSlot.grow(amountToAdd);
+          slot.grow(amountToAdd);
           remainingCount -= amountToAdd;
           
           if (remainingCount <= 0) {
             break;
           }
-        } else if (inputSlot.isEmpty()) {
-          this.inputSlots.setStackInSlot(j, remainingItem.copy());
+        } else if (slot.isEmpty()) {
+          toPlaceIn.setStackInSlot(j, remainingItem.copy());
           remainingCount = 0;
           break;
         }
@@ -551,6 +569,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
                         this.outputSlots.serializeNBT(registries));
     tutorialModData.put("craftingInv",
                         this.craftingSlots.serializeNBT(registries));
+    tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
     return tutorialModData;
   }
   
@@ -570,6 +589,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         (registries, tutorialmodData.getCompound("outputInv"));
     this.craftingSlots.deserializeNBT
         (registries, tutorialmodData.getCompound("craftingInv"));
+    this.remainItemToggleValue = tutorialmodData.getInt("remainItemToggleValue");
   }
   
   @Override

@@ -5,12 +5,18 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.roboxgamer.tutorialmod.block.ModBlocks;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.client.screen.MechanicalCrafterScreen;
 import net.roboxgamer.tutorialmod.item.ModCreativeModTabs;
 import net.roboxgamer.tutorialmod.item.ModItems;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
+import net.roboxgamer.tutorialmod.network.ClientPayloadHandler;
+import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
+import net.roboxgamer.tutorialmod.network.ServerPayloadHandler;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -49,6 +55,8 @@ public class TutorialMod {
     modEventBus.addListener(this::commonSetup);
 
     NeoForge.EVENT_BUS.register(this);
+    
+    //modEventBus.addListener(this::register);
 
     ModCreativeModTabs.register(modEventBus);
 
@@ -106,6 +114,20 @@ public class TutorialMod {
       event.enqueueWork(() -> {
         Minecraft.getInstance().getWindow().setWindowed(1280,720);
       });
+    }
+    
+    @SubscribeEvent
+    public static void register(final RegisterPayloadHandlersEvent event) {
+      // Sets the current network version
+      final PayloadRegistrar registrar = event.registrar("1");
+      registrar.playBidirectional(
+          RemainItemTogglePayload.TYPE,
+          RemainItemTogglePayload.STREAM_CODEC,
+          new DirectionalPayloadHandler<>(
+              ClientPayloadHandler::handleData,
+              ServerPayloadHandler::handleData
+          )
+      );
     }
   }
 }
