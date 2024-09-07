@@ -15,6 +15,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -26,6 +27,7 @@ import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
+import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,7 +124,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       BlockEntity blockEntity = slevel.getBlockEntity(MechanicalCrafterBlockEntity.this.getBlockPos());
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
       be.recipe = be.getRecipe(slevel);
-      be.result = be.getResult(slevel);
       if (be.craftingSlots.getStackInSlot(RESULT_SLOT).isEmpty() || !be.craftingSlots.getStackInSlot(RESULT_SLOT).is(be.result.getItem())) {
         be.craftingSlots.setStackInSlot(0, be.result);
       }
@@ -223,12 +224,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
   };
   
-  private ItemStack getResult(ServerLevel slevel) {
-    if (this.recipe == null) return ItemStack.EMPTY;
-    return this.recipe.getResultItem(slevel.registryAccess()).copy();
-  }
-  
-  Lazy<CustomItemStackHandler> combinedInvHandlerLazy = Lazy.of(() -> new CustomItemStackHandler(combinedInvHandler.getSlots()));
   
   public MechanicalCrafterBlockEntity(BlockPos pos, BlockState blockState) {
     super(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(), pos, blockState);
@@ -275,7 +270,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public void tick() {
 //  Ticking logic
     this.tc++;
-    if (this.tc == 20 * 60) this.tc = 0;
+    if (this.tc == 20 * 60) this.tc = 0; // Every 1 minute
     
     Level level = this.getLevel();
     if (level == null) return;
@@ -284,10 +279,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     if (this.tc == 1) {
       this.recipe = getRecipe((ServerLevel) this.level);
-      if (this.recipe != null) {
-        this.result = this.recipe.getResultItem(level.registryAccess()).copy();
-        this.craftingSlots.setStackInSlot(0, this.result);
-      }
     }
 
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
@@ -375,18 +366,41 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     for (int i = 1; i < l.size(); i++) {
       l2.set(i - 1, l.get(i));
     }
-    TutorialMod.LOGGER.info("l2: {}", l2);
+    //TutorialMod.LOGGER.info("l2: {}", l2);
     CraftingInput input = CraftingInput.of(3, 3, l2);
     List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(recipeType, input, level);
     if (list.isEmpty()) return null;
     RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst();
-    TutorialMod.LOGGER.info("foundRecipe: {}", foundRecipe);
-    ItemStack result = foundRecipe.value().getResultItem(level.registryAccess()).copy();
-    TutorialMod.LOGGER.info("result: {}", result);
+    //TutorialMod.LOGGER.info("foundRecipe: {}", foundRecipe);
+    ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
+    //TutorialMod.LOGGER.info("result: {}", result);
     if (result.isEmpty()) {
       return null;
     }
     this.remainingItems = foundRecipe.value().getRemainingItems(input);
+    if (this.recipe != null) {
+      this.result = result;
+      this.craftingSlots.setStackInSlot(0, this.result);
+    }
+    
+    // Special case for tipped arrows recipe
+    if (foundRecipe.value() instanceof TippedArrowRecipe rec) {
+      CustomTippedArrowRecipe recipe = new CustomTippedArrowRecipe(rec);
+      ItemStack potion = input.getItem(1, 1);
+      Ingredient arrowIngredient = Ingredient.of(Items.ARROW);
+      Ingredient potionIngredient = Ingredient.of(potion);
+      NonNullList<Ingredient> ingredients = NonNullList.withSize(10, Ingredient.EMPTY);
+      
+      for (int i = 0; i <= 9; i++) {
+        if (i == 4){
+          ingredients.set(i, potionIngredient);
+          continue;
+        }
+        ingredients.set(i, arrowIngredient);
+      }
+      recipe.setIngredients(ingredients);
+      return recipe;
+    }
     return foundRecipe.value();
   }
   
@@ -394,6 +408,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Iterate over each ingredient in the recipe
     for (Ingredient ingredient : ingredients) {
       boolean matched = false;
+      //TutorialMod.LOGGER.info("Ingredient: {}", ingredient);
       if (ingredient.getItems().length == 0) continue;
       
       // Iterate over each item in the input slots
