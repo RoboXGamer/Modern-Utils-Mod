@@ -79,7 +79,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 3; col++) {
         this.addSlot(
-            new CraftingGhostSlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18,
+            new SlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18,
                                              18 + row * 18));
       }
     }
