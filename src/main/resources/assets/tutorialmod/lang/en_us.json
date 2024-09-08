@@ -3,6 +3,7 @@
   "block.tutorialmod.example_block": "Example Block",
   "block.tutorialmod.magic_block": "Magic Block",
   "block.tutorialmod.mechanical_crafter_block": "Mechanical Crafter",
+  "block.tutorialmod.example_inventory_block": "Example Inventory Block",
   "creativetab.tutorialmod.tab": "Tutorial Mod",
   "config.jade.plugin_tutorialmod.data": "Speed",
   "tooltip.tutorialmod.data": "Speed: %s",

@@ -23,6 +23,7 @@ public class ModBlockTagProvider extends BlockTagsProvider {
         .add(ModBlocks.MAGIC_BLOCK.get());
 
     this.tag(BlockTags.MINEABLE_WITH_AXE)
-        .add(ModBlocks.MECHANICAL_CRAFTER_BLOCK.get());
+        .add(ModBlocks.MECHANICAL_CRAFTER_BLOCK.get())
+        .add(ModBlocks.EXAMPLE_INVENTORY_BLOCK.get());
   }
 }

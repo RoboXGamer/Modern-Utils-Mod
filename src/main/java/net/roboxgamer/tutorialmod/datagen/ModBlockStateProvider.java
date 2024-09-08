@@ -17,6 +17,7 @@ public class ModBlockStateProvider extends BlockStateProvider {
   protected void registerStatesAndModels() {
     blockWithItem(ModBlocks.EXAMPLE_BLOCK);
     blockWithItem(ModBlocks.MAGIC_BLOCK);
+    blockWithItem(ModBlocks.EXAMPLE_INVENTORY_BLOCK);
     
     blockWithItemWithModel(
         ModBlocks.MECHANICAL_CRAFTER_BLOCK,
