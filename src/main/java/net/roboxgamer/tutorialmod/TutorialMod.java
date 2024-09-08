@@ -4,17 +4,20 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.roboxgamer.tutorialmod.block.ModBlocks;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
+import net.roboxgamer.tutorialmod.block.entity.custom.renderer.MechanicalCrafterBlockEntityRenderer;
 import net.roboxgamer.tutorialmod.client.screen.MechanicalCrafterScreen;
 import net.roboxgamer.tutorialmod.item.ModCreativeModTabs;
 import net.roboxgamer.tutorialmod.item.ModItems;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
 import net.roboxgamer.tutorialmod.network.ClientPayloadHandler;
+import net.roboxgamer.tutorialmod.network.ItemStackPayload;
 import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
 import net.roboxgamer.tutorialmod.network.ServerPayloadHandler;
 import org.jetbrains.annotations.NotNull;
@@ -117,12 +120,26 @@ public class TutorialMod {
     }
     
     @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+      event.registerBlockEntityRenderer(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
+                                        MechanicalCrafterBlockEntityRenderer::new);
+    }
+    
+    @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {
       // Sets the current network version
       final PayloadRegistrar registrar = event.registrar("1");
       registrar.playBidirectional(
           RemainItemTogglePayload.TYPE,
           RemainItemTogglePayload.STREAM_CODEC,
+          new DirectionalPayloadHandler<>(
+              ClientPayloadHandler::handleData,
+              ServerPayloadHandler::handleData
+          )
+      );
+      registrar.playBidirectional(
+          ItemStackPayload.TYPE,
+          ItemStackPayload.STREAM_CODEC,
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData

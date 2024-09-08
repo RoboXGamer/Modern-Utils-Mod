@@ -20,13 +20,14 @@ import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.util.Lazy;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
+import net.roboxgamer.tutorialmod.network.ItemStackPayload;
 import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,6 +63,15 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       this.remainItemToggleValue = 0;
     }
     return this.remainItemToggleValue;
+  }
+  
+  public ItemStack getRenderStack() {
+    return this.result == null ? ItemStack.EMPTY : this.result;
+  }
+  
+  public void setRenderStack(ItemStack itemStack) {
+    this.result = itemStack;
+    this.craftingSlots.setStackInSlot(0, this.result);
   }
   
   public class CustomItemStackHandler extends ItemStackHandler {
@@ -124,9 +134,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       BlockEntity blockEntity = slevel.getBlockEntity(MechanicalCrafterBlockEntity.this.getBlockPos());
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
       be.recipe = be.getRecipe(slevel);
-      if (be.craftingSlots.getStackInSlot(RESULT_SLOT).isEmpty() || !be.craftingSlots.getStackInSlot(RESULT_SLOT).is(be.result.getItem())) {
-        be.craftingSlots.setStackInSlot(0, be.result);
-      }
     }
   }
   
@@ -271,14 +278,17 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 //  Ticking logic
     this.tc++;
     if (this.tc == 20 * 60) this.tc = 0; // Every 1 minute
-    
+    //TutorialMod.LOGGER.debug("tc: {}", this.tc);
     Level level = this.getLevel();
     if (level == null) return;
     if (level.isClientSide()) return;
     if (!(level instanceof ServerLevel slevel)) return;
     
-    if (this.tc == 1) {
+    if (this.tc == 20) {
       this.recipe = getRecipe((ServerLevel) this.level);
+      if (this.result != null) {
+        PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
+      }
     }
 
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
@@ -369,20 +379,22 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     //TutorialMod.LOGGER.info("l2: {}", l2);
     CraftingInput input = CraftingInput.of(3, 3, l2);
     List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(recipeType, input, level);
-    if (list.isEmpty()) return null;
+    if (list.isEmpty()) {
+      this.result = null;
+      this.craftingSlots.setStackInSlot(0, ItemStack.EMPTY);
+      return null;
+    }
     RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst();
-    //TutorialMod.LOGGER.info("foundRecipe: {}", foundRecipe);
+    TutorialMod.LOGGER.debug("foundRecipe: {}", foundRecipe);
     ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
-    //TutorialMod.LOGGER.info("result: {}", result);
+    TutorialMod.LOGGER.debug("result: {}", result);
     if (result.isEmpty()) {
       return null;
     }
     this.remainingItems = foundRecipe.value().getRemainingItems(input);
-    if (this.recipe != null) {
-      this.result = result;
-      this.craftingSlots.setStackInSlot(0, this.result);
-    }
-    
+    this.result = result;
+    this.craftingSlots.setStackInSlot(0, this.result);
+    PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     // Special case for tipped arrows recipe
     if (foundRecipe.value() instanceof TippedArrowRecipe rec) {
       CustomTippedArrowRecipe recipe = new CustomTippedArrowRecipe(rec);
@@ -528,7 +540,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle remaining items
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
-    TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
+    //TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
     for (ItemStack remainingItem : this.remainingItems) {
       //TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
@@ -585,6 +597,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     tutorialModData.put("craftingInv",
                         this.craftingSlots.serializeNBT(registries));
     tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
+    tutorialModData.put("result", this.result.save(registries));
     return tutorialModData;
   }
   
@@ -605,6 +618,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.craftingSlots.deserializeNBT
         (registries, tutorialmodData.getCompound("craftingInv"));
     this.remainItemToggleValue = tutorialmodData.getInt("remainItemToggleValue");
+    this.result = ItemStack.parseOptional(registries, tutorialmodData.getCompound("result"));
   }
   
   @Override

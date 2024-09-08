@@ -13,4 +13,14 @@ public class ServerPayloadHandler {
       mcbe.setRemainItemToggleValue(remainItemToggleValue);
     }
   }
+  
+  public static void handleData(ItemStackPayload payload, final IPayloadContext context) {
+    var itemStack = payload.itemStack();
+    var blockPos = payload.blockPos();
+    System.out.println("Server received itemStack: " + itemStack);
+    var be = context.player().level().getBlockEntity(blockPos);
+    if (be instanceof MechanicalCrafterBlockEntity mcbe) {
+      mcbe.getCraftingSlotsItemHandler().setStackInSlot(0, itemStack);
+    }
+  }
 }
