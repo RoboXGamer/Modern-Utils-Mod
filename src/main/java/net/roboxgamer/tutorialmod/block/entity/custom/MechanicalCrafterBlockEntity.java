@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -71,7 +72,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   public void setRenderStack(ItemStack itemStack) {
     this.result = itemStack;
-    this.craftingSlots.setStackInSlot(0, this.result);
+    this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
   }
   
   public class CustomItemStackHandler extends ItemStackHandler {
@@ -128,12 +129,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       @Override
       protected void onContentsChanged(int slot) {
       super.onContentsChanged(slot);
-      if (slot == 0) return;
+      if (slot == RESULT_SLOT) return;
       Level level = MechanicalCrafterBlockEntity.this.getLevel();
       if (level == null || level.isClientSide() || !(level instanceof ServerLevel slevel)) return;
       BlockEntity blockEntity = slevel.getBlockEntity(MechanicalCrafterBlockEntity.this.getBlockPos());
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be)) return;
       be.recipe = be.getRecipe(slevel);
+      if (be.result == null) be.result = ItemStack.EMPTY;
+      PacketDistributor.sendToAllPlayers(new ItemStackPayload(be.result, be.getBlockPos()));
     }
   }
   
@@ -385,16 +388,18 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return null;
     }
     RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst();
-    TutorialMod.LOGGER.debug("foundRecipe: {}", foundRecipe);
+    //TutorialMod.LOGGER.debug("foundRecipe: {}", foundRecipe);
     ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
-    TutorialMod.LOGGER.debug("result: {}", result);
+    //TutorialMod.LOGGER.debug("result: {}", result);
     if (result.isEmpty()) {
       return null;
     }
+    if (this.result != null && this.result.is(result.getItem())) return foundRecipe.value();
     this.remainingItems = foundRecipe.value().getRemainingItems(input);
     this.result = result;
-    this.craftingSlots.setStackInSlot(0, this.result);
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
+    if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
+      this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
     // Special case for tipped arrows recipe
     if (foundRecipe.value() instanceof TippedArrowRecipe rec) {
       CustomTippedArrowRecipe recipe = new CustomTippedArrowRecipe(rec);
@@ -597,7 +602,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     tutorialModData.put("craftingInv",
                         this.craftingSlots.serializeNBT(registries));
     tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
-    tutorialModData.put("result", this.result.save(registries));
+    if (this.result != null && !this.result.isEmpty()) tutorialModData.put("result", this.result.save(registries));
+    if (this.recipe != null) tutorialModData.put("recipe", Recipe.CODEC.encodeStart(NbtOps.INSTANCE,
+                                                                                    this.recipe).getOrThrow());
     return tutorialModData;
   }
   
@@ -619,6 +626,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         (registries, tutorialmodData.getCompound("craftingInv"));
     this.remainItemToggleValue = tutorialmodData.getInt("remainItemToggleValue");
     this.result = ItemStack.parseOptional(registries, tutorialmodData.getCompound("result"));
+    if (tutorialmodData.contains("recipe")) {
+      var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tutorialmodData.getCompound("recipe")).getOrThrow();
+      if (recipe instanceof CraftingRecipe craftingRecipe) {
+        this.recipe = craftingRecipe;
+      }
+    }
   }
   
   @Override

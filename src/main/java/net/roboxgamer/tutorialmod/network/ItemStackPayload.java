@@ -14,7 +14,7 @@ public record ItemStackPayload (ItemStack itemStack, BlockPos blockPos) implemen
   
   
   public static final StreamCodec<RegistryFriendlyByteBuf, ItemStackPayload> STREAM_CODEC = StreamCodec.composite(
-      ItemStack.STREAM_CODEC,
+      ItemStack.OPTIONAL_STREAM_CODEC,
       ItemStackPayload::itemStack,
       BlockPos.STREAM_CODEC,
       ItemStackPayload::blockPos,
