@@ -25,7 +25,7 @@ public class MechanicalCrafterBlockEntityRenderer implements BlockEntityRenderer
   private static class HologramBufferSource implements MultiBufferSource {
     private final BufferSource bufferSource;
     
-    public HologramBufferSource(BufferSource bufferSource) {
+    public HologramBufferSource(MultiBufferSource.BufferSource bufferSource) {
       this.bufferSource = bufferSource;
     }
     @Override
@@ -44,7 +44,13 @@ public class MechanicalCrafterBlockEntityRenderer implements BlockEntityRenderer
     poseStack.pushPose();
     poseStack.translate(0.5f, 1.25f, 0.5f);
     poseStack.scale(0.5f, 0.5f, 0.5f);
-    var HologramBufferSource = new HologramBufferSource((MultiBufferSource.BufferSource) bufferSource);
+    MultiBufferSource HologramBufferSource;
+    if (bufferSource instanceof MultiBufferSource.BufferSource) {
+      HologramBufferSource = new HologramBufferSource((MultiBufferSource.BufferSource) bufferSource);
+    }
+    else {
+      HologramBufferSource = bufferSource;
+    }
     RenderSystem.setShaderColor(0.0f, 0.5f, 0.8f, 0.5f);
     itemRenderer.renderStatic(
         renderStack,
@@ -56,7 +62,9 @@ public class MechanicalCrafterBlockEntityRenderer implements BlockEntityRenderer
         blockEntity.getLevel(),
         1
     );
-    HologramBufferSource.endBatch();
+    if (HologramBufferSource instanceof HologramBufferSource) {
+      ((HologramBufferSource) HologramBufferSource).endBatch();
+    }
     RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
     poseStack.popPose();
   }
