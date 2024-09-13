@@ -101,8 +101,53 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   
   @Override
   public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
-    return ItemStack.EMPTY;
+    ItemStack itemstack = ItemStack.EMPTY;
+    Slot slot = this.slots.get(index);
+    
+    if (slot.hasItem()) {
+      ItemStack stackInSlot = slot.getItem();
+      itemstack = stackInSlot.copy();
+      
+      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10;  // Assuming slot indexes: recipe + input + output slots = 10
+      int playerHotbarStart = playerInventoryStart + 27;
+      int playerHotbarEnd = playerHotbarStart + 9;
+      
+      // Moving from output slots to player inventory
+      if (index >= INPUT_SLOTS_COUNT + 10 && index < INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10) {
+        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, true)) {
+          return ItemStack.EMPTY;
+        }
+        slot.onQuickCraft(stackInSlot, itemstack);
+      }
+      // Moving from input slots back to player inventory
+      else if (index >= 10 && index < INPUT_SLOTS_COUNT + 10) {
+        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, false)) {
+          return ItemStack.EMPTY;
+        }
+      }
+      // Moving from player inventory to input slots
+      else if (index >= playerInventoryStart) {
+        if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
+          return ItemStack.EMPTY;
+        }
+      }
+      
+      if (stackInSlot.isEmpty()) {
+        slot.set(ItemStack.EMPTY);
+      } else {
+        slot.setChanged();
+      }
+      
+      if (stackInSlot.getCount() == itemstack.getCount()) {
+        return ItemStack.EMPTY;
+      }
+      
+      slot.onTake(player, stackInSlot);
+    }
+    
+    return itemstack;
   }
+  
   
   @Override
   public boolean stillValid(@NotNull Player player) {
