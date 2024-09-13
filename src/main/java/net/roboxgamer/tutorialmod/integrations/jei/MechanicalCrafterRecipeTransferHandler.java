@@ -1,7 +1,6 @@
 package net.roboxgamer.tutorialmod.integrations.jei;
 
 import mezz.jei.api.constants.RecipeTypes;
-import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
@@ -23,7 +22,6 @@ import net.roboxgamer.tutorialmod.network.GhostSlotTransferPayload;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,59 +61,33 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
     }
     
     if (!doTransfer) {
-      return validateRecipeTransfer(recipeSlots, player, ingredients);
+      return null;  // No validation needed when not transferring
     } else {
-      return transferRecipeToGhostSlots(container, player, ingredients);
+      return transferRecipeToGhostSlots(container, ingredients);
     }
-  }
-  
-  private @Nullable IRecipeTransferError validateRecipeTransfer(@NotNull IRecipeSlotsView recipeSlots,
-                                                                @NotNull Player player,
-                                                                @NotNull List<Ingredient> ingredients) {
-    List<IRecipeSlotView> missingSlots = new ArrayList<>();
-    int ingredientIndex = 0;
-    for (IRecipeSlotView recipeSlot : recipeSlots.getSlotViews()) {
-      if (ingredientIndex >= ingredients.size()) {
-        break;  // Prevent index out of bounds
-      }
-      Ingredient ingredient = ingredients.get(ingredientIndex);
-      if (!hasItemInInventory(player, ingredient)) {
-        missingSlots.add(recipeSlot);
-      }
-      ingredientIndex++;
-    }
-    
-    if (!missingSlots.isEmpty()) {
-      return handlerHelper.createUserErrorForMissingSlots(Component.literal("You are missing required items!"), missingSlots);
-    }
-    
-    return null;
   }
   
   private @Nullable IRecipeTransferError transferRecipeToGhostSlots(@NotNull MechanicalCrafterMenu container,
-                                                                    @NotNull Player player,
                                                                     @NotNull List<Ingredient> ingredients) {
     int[] slotMap = getSlotMap(ingredients);
     clearGhostSlots(container);
     
     for (int i = 0; i < ingredients.size(); i++) {
       Ingredient ingredient = ingredients.get(i);
-      ItemStack matchingStack = findMatchingStack(player, ingredient);
-      if (!matchingStack.isEmpty()) {
-        Slot ghostSlot = container.getSlot(slotMap[i]);
-        if (ghostSlot instanceof CraftingGhostSlotItemHandler) {
-          ItemStack ghostItem = matchingStack.copy();
-          ghostItem.setCount(1);
-          ghostSlot.set(ghostItem);
-          
-          PacketDistributor.sendToServer(
-              new GhostSlotTransferPayload(slotMap[i], ghostItem, container.getBlockEntity().getBlockPos())
-          );
-        }
+      ItemStack ghostItem = new ItemStack(ingredient.getItems()[0].getItem());  // Create a ghost item from the first item in the ingredient
+      
+      Slot ghostSlot = container.getSlot(slotMap[i]);
+      if (ghostSlot instanceof CraftingGhostSlotItemHandler) {
+        ghostItem.setCount(1);
+        ghostSlot.set(ghostItem);
+        
+        PacketDistributor.sendToServer(
+            new GhostSlotTransferPayload(slotMap[i], ghostItem, container.getBlockEntity().getBlockPos())
+        );
       }
     }
     
-    return null;
+    return null;  // No error, transfer successful
   }
   
   private static int @NotNull [] getSlotMap(List<Ingredient> ingredients) {
@@ -135,23 +107,5 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
         );
       }
     }
-  }
-  
-  private boolean hasItemInInventory(Player player, Ingredient ingredient) {
-    for (ItemStack stack : player.getInventory().items) {
-      if (ingredient.test(stack)) {
-        return true;
-      }
-    }
-    return false;
-  }
-  
-  private ItemStack findMatchingStack(Player player, Ingredient ingredient) {
-    for (ItemStack stack : player.getInventory().items) {
-      if (ingredient.test(stack)) {
-        return stack;
-      }
-    }
-    return ItemStack.EMPTY;
   }
 }
