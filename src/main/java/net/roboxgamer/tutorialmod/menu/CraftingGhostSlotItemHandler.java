@@ -14,48 +14,82 @@ public class CraftingGhostSlotItemHandler extends SlotItemHandler {
   }
   
   @Override
-  public int getMaxStackSize() {
-    return 0;
+  public boolean mayPlace(ItemStack stack) {
+    // Prevent real item placement, only allow ghost items (for visual representation)
+    return false;
   }
   
   @Override
-  public int getMaxStackSize(@NotNull ItemStack stack) {
-    return 1;
+  public boolean mayPickup(Player player) {
+    // Prevent real item pickup, acting as a ghost slot
+    return false;
   }
   
-  @Nonnull
   @Override
-  public ItemStack remove(int amount) {
-    super.remove(amount);
+  public @NotNull ItemStack remove(int amount) {
+    // Always return an empty stack to simulate a fake slot
     return ItemStack.EMPTY;
   }
   
   @Override
-  public boolean mayPickup(@NotNull Player playerIn) {
-    return true;
-  }
-  
-  @Override
-  public boolean mayPlace(@NotNull ItemStack stack) {
-    return true;
-  }
-  
-  @Override
-  public void set(@NotNull ItemStack stack) {
+  public void set(ItemStack stack) {
+    // This will set a ghost item in the slot, so we make a copy of the stack
     if (!stack.isEmpty()) {
-      stack.setCount(1);
+      stack = stack.copy();
     }
     super.set(stack);
   }
   
+  // Method to increase ghost item stack or set a new item if it's not a ghost item yet
+  public void increase(ItemStack is) {
+    ItemStack current = getItem();
+    if (current.isEmpty()) {
+      // If the slot is empty, set the current item as the ghost item with count 1
+      ItemStack newStack = is.copy();
+      newStack.setCount(1);
+      set(newStack);
+    } else if (ItemStack.isSameItemSameComponents(current, is)) {
+      // If the item in hand is the same as the one in the ghost slot, increase the count
+      current.grow(1);
+      set(current);
+    }
+  }
+  
+  // Method to decrease ghost item stack or reset it
+  public void decrease(ItemStack is) {
+    ItemStack current = getItem();
+    if (!current.isEmpty() && ItemStack.isSameItemSameComponents(current, is)) {
+      // If the item in hand is the same, decrease the count
+      current.shrink(1);
+      if (current.getCount() <= 0) {
+        // If the count reaches 0, reset the slot to empty
+        set(ItemStack.EMPTY);
+      } else {
+        // Otherwise, set the new decreased stack
+        set(current);
+      }
+    }
+  }
+  
+  // Method to remove the item when right-clicking with an empty hand
+  public void removeItem() {
+    set(ItemStack.EMPTY);
+  }
+  
   @Override
-  public @NotNull ItemStack safeInsert(ItemStack stack, int increment) {
-    super.safeInsert(stack, increment);
-    stack.grow(1);
-    return stack;
+  public boolean isActive() {
+    // You can control whether this slot is active or not
+    return true;
   }
   
   public SLOT_TYPE getType() {
     return SLOT_TYPE.GHOST;
+  }
+  
+  // Example method for setting a ghost item as filter
+  public void setFilterTo(ItemStack stack) {
+    if (!stack.isEmpty()) {
+      set(stack);
+    }
   }
 }

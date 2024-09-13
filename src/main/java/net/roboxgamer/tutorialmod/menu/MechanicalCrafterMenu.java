@@ -4,6 +4,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -79,7 +80,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 3; col++) {
         this.addSlot(
-            new SlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18,
+            new CraftingGhostSlotItemHandler(craftingItemHandler, CRAFT_RECIPE_SLOTS[row * 3 + col], 26 + col * 18,
                                              18 + row * 18));
       }
     }
@@ -112,5 +113,35 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     return this.blockEntity;
   }
   
-  
+  @Override
+  public void clicked(int slotId, int button, @NotNull ClickType clickType, @NotNull Player player) {
+    // Check if the clicked slot is a CraftingGhostSlotItemHandler
+    if (slotId >= 0 && slotId < this.slots.size()) {
+      Slot slot = this.slots.get(slotId);
+      
+      if (slot instanceof CraftingGhostSlotItemHandler ghostSlot) {
+        ItemStack heldItem = this.getCarried(); // Item currently held by the player
+        
+        if (clickType == ClickType.PICKUP) {
+          if (button == 0) {  // Left-click (button 0)
+            if (!heldItem.isEmpty()) {
+              ghostSlot.increase(heldItem);
+            }
+          } else if (button == 1) {  // Right-click (button 1)
+            if (heldItem.isEmpty()) {
+              // If the player is not holding an item, remove the ghost item
+              ghostSlot.removeItem();
+            } else if (ItemStack.isSameItemSameComponents(ghostSlot.getItem(), heldItem)) {
+              // If the player is holding the same item, decrease the count
+              ghostSlot.decrease(heldItem);
+            }
+          }
+        }
+        return;  // No need to call super as we handle it
+      }
+    }
+    
+    // Call super to handle other slots normally
+    super.clicked(slotId, button, clickType, player);
+  }
 }
