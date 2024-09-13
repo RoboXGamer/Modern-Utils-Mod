@@ -16,10 +16,7 @@ import net.roboxgamer.tutorialmod.client.screen.MechanicalCrafterScreen;
 import net.roboxgamer.tutorialmod.item.ModCreativeModTabs;
 import net.roboxgamer.tutorialmod.item.ModItems;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
-import net.roboxgamer.tutorialmod.network.ClientPayloadHandler;
-import net.roboxgamer.tutorialmod.network.ItemStackPayload;
-import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
-import net.roboxgamer.tutorialmod.network.ServerPayloadHandler;
+import net.roboxgamer.tutorialmod.network.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -140,6 +137,14 @@ public class TutorialMod {
       registrar.playBidirectional(
           ItemStackPayload.TYPE,
           ItemStackPayload.STREAM_CODEC,
+          new DirectionalPayloadHandler<>(
+              ClientPayloadHandler::handleData,
+              ServerPayloadHandler::handleData
+          )
+      );
+      registrar.playBidirectional(
+          GhostSlotTransferPayload.TYPE,
+          GhostSlotTransferPayload.STREAM_CODEC,
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData

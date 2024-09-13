@@ -1,6 +1,7 @@
 package net.roboxgamer.tutorialmod.integrations.jei;
 
 import mezz.jei.api.constants.RecipeTypes;
+import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
@@ -14,20 +15,23 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.menu.CraftingGhostSlotItemHandler;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
+import net.roboxgamer.tutorialmod.network.GhostSlotTransferPayload;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHandler<MechanicalCrafterMenu, RecipeHolder<CraftingRecipe>> {
-  private final IRecipeTransferHandlerHelper transferHelper;
+  private final IRecipeTransferHandlerHelper handlerHelper;
   
-  public MechanicalCrafterRecipeTransferHandler(IRecipeTransferHandlerHelper transferHelper) {
-    this.transferHelper = transferHelper;
+  public MechanicalCrafterRecipeTransferHandler(IRecipeTransferHandlerHelper handlerHelper) {
+    this.handlerHelper = handlerHelper;
   }
   
   @Override
@@ -52,45 +56,87 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
                                                        @NotNull Player player,
                                                        boolean maxTransfer,
                                                        boolean doTransfer) {
-    // Get the recipe's required ingredients
     List<Ingredient> ingredients = recipe.value().getIngredients();
-    // Ensure the recipe fits in the ghost crafting slots
+    
     if (ingredients.size() > 9) {
-      return transferHelper.createUserErrorWithTooltip(Component.literal("The recipe is too large for the available crafting slots."));
+      return handlerHelper.createUserErrorWithTooltip(Component.literal("The recipe is too large for the available crafting slots."));
     }
     
-    // If we're only validating (doTransfer == false), ensure that the player has the necessary items
     if (!doTransfer) {
-      for (Ingredient ingredient : ingredients) {
-        // Check if the player has the required item in their inventory
-        if (!hasItemInInventory(player, ingredient)) {
-          return transferHelper.createUserErrorWithTooltip(Component.literal("You do not have the required items."));
-        }
-      }
-      return null;  // No error, recipe can be transferred
+      return validateRecipeTransfer(recipeSlots, player, ingredients);
+    } else {
+      return transferRecipeToGhostSlots(container, player, ingredients);
     }
-    
-    // If we are transferring (doTransfer == true), place items in ghost slots
-    int slotIndex = 0;
-    for (Ingredient ingredient : ingredients) {
-      ItemStack matchingStack = findMatchingStack(player, ingredient);
-      
-      if (!matchingStack.isEmpty()) {
-        // Get the ghost slot in the container
-        Slot ghostSlot = container.slots.get(slotIndex);
-        if (ghostSlot instanceof CraftingGhostSlotItemHandler) {
-          ItemStack ghostItem = matchingStack.copy();
-          ghostItem.setCount(1);  // Set to 1 for ghost slot behavior
-          ghostSlot.set(ghostItem);  // Place the item in the ghost slot
-        }
-      }
-      slotIndex++;
-    }
-    
-    return null;  // Return null to indicate success
   }
   
-  // Helper method to check if the player has the required item for the ingredient
+  private @Nullable IRecipeTransferError validateRecipeTransfer(@NotNull IRecipeSlotsView recipeSlots,
+                                                                @NotNull Player player,
+                                                                @NotNull List<Ingredient> ingredients) {
+    List<IRecipeSlotView> missingSlots = new ArrayList<>();
+    int ingredientIndex = 0;
+    for (IRecipeSlotView recipeSlot : recipeSlots.getSlotViews()) {
+      if (ingredientIndex >= ingredients.size()) {
+        break;  // Prevent index out of bounds
+      }
+      Ingredient ingredient = ingredients.get(ingredientIndex);
+      if (!hasItemInInventory(player, ingredient)) {
+        missingSlots.add(recipeSlot);
+      }
+      ingredientIndex++;
+    }
+    
+    if (!missingSlots.isEmpty()) {
+      return handlerHelper.createUserErrorForMissingSlots(Component.literal("You are missing required items!"), missingSlots);
+    }
+    
+    return null;
+  }
+  
+  private @Nullable IRecipeTransferError transferRecipeToGhostSlots(@NotNull MechanicalCrafterMenu container,
+                                                                    @NotNull Player player,
+                                                                    @NotNull List<Ingredient> ingredients) {
+    int[] slotMap = getSlotMap(ingredients);
+    clearGhostSlots(container);
+    
+    for (int i = 0; i < ingredients.size(); i++) {
+      Ingredient ingredient = ingredients.get(i);
+      ItemStack matchingStack = findMatchingStack(player, ingredient);
+      if (!matchingStack.isEmpty()) {
+        Slot ghostSlot = container.getSlot(slotMap[i]);
+        if (ghostSlot instanceof CraftingGhostSlotItemHandler) {
+          ItemStack ghostItem = matchingStack.copy();
+          ghostItem.setCount(1);
+          ghostSlot.set(ghostItem);
+          
+          PacketDistributor.sendToServer(
+              new GhostSlotTransferPayload(slotMap[i], ghostItem, container.getBlockEntity().getBlockPos())
+          );
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  private static int @NotNull [] getSlotMap(List<Ingredient> ingredients) {
+    if (ingredients.size() == 4) {
+      return new int[] {1, 2, 4, 5};  // 2x2 recipe
+    }
+    return new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9};  // 3x3 recipe
+  }
+  
+  private void clearGhostSlots(MechanicalCrafterMenu container) {
+    for (int i = 1; i <= 9; i++) {
+      Slot ghostSlot = container.getSlot(i);
+      if (ghostSlot instanceof CraftingGhostSlotItemHandler) {
+        ghostSlot.set(ItemStack.EMPTY);
+        PacketDistributor.sendToServer(
+            new GhostSlotTransferPayload(i, ItemStack.EMPTY, container.getBlockEntity().getBlockPos())
+        );
+      }
+    }
+  }
+  
   private boolean hasItemInInventory(Player player, Ingredient ingredient) {
     for (ItemStack stack : player.getInventory().items) {
       if (ingredient.test(stack)) {
@@ -100,7 +146,6 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
     return false;
   }
   
-  // Helper method to find the matching stack from the player's inventory for an ingredient
   private ItemStack findMatchingStack(Player player, Ingredient ingredient) {
     for (ItemStack stack : player.getInventory().items) {
       if (ingredient.test(stack)) {
@@ -109,5 +154,4 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
     }
     return ItemStack.EMPTY;
   }
-  
 }

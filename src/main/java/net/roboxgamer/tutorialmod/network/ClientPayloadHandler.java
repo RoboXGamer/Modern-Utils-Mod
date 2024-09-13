@@ -22,4 +22,11 @@ public class ClientPayloadHandler {
       mcbe.setRenderStack(itemStack);
     }
   }
+  
+  public static void handleData(GhostSlotTransferPayload payload, final IPayloadContext context) {
+    ItemStack itemStack = payload.itemStack();
+    //TutorialMod.LOGGER.debug("Client received itemStack: {}", itemStack);
+    BlockPos blockPos = payload.blockPos();
+    //TutorialMod.LOGGER.debug("Client received blockPos: {}", blockPos);
+  }
 }

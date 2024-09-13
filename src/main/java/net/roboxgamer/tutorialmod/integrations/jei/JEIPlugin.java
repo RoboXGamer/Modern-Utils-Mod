@@ -3,8 +3,10 @@ package net.roboxgamer.tutorialmod.integrations.jei;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.RecipeTypes;
+import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
+import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeTransferRegistration;
 import net.minecraft.resources.ResourceLocation;
@@ -12,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.ModBlocks;
+import net.roboxgamer.tutorialmod.client.screen.MechanicalCrafterScreen;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +36,17 @@ public class JEIPlugin implements IModPlugin {
   @Override
   public void registerRecipeTransferHandlers(@NotNull IRecipeTransferRegistration registration) {
     IModPlugin.super.registerRecipeTransferHandlers(registration);
-    registration.addRecipeTransferHandler(new MechanicalCrafterRecipeTransferHandler(registration.getTransferHelper()),RecipeTypes.CRAFTING);
+    registration.addRecipeTransferHandler(
+        new MechanicalCrafterRecipeTransferHandler(registration.getTransferHelper())
+        ,RecipeTypes.CRAFTING);
     //registration.addRecipeTransferHandler(MechanicalCrafterMenu.class, ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(),RecipeTypes.CRAFTING, 1, 9, 28, 36);
+  }
+  
+  @Override
+  public void registerGuiHandlers(@NotNull IGuiHandlerRegistration registration) {
+    IModPlugin.super.registerGuiHandlers(registration);
+    registration.addGhostIngredientHandler(
+        MechanicalCrafterScreen.class,MechanicalCrafterScreen.GHOST_INGREDIENT_HANDLER
+    );
   }
 }
