@@ -33,6 +33,7 @@ public class JEIPlugin implements IModPlugin {
   @Override
   public void registerRecipeTransferHandlers(@NotNull IRecipeTransferRegistration registration) {
     IModPlugin.super.registerRecipeTransferHandlers(registration);
-    registration.addRecipeTransferHandler(MechanicalCrafterMenu.class, ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(),RecipeTypes.CRAFTING, 1, 9, 28, 36);
+    registration.addRecipeTransferHandler(new MechanicalCrafterRecipeTransferHandler(registration.getTransferHelper()),RecipeTypes.CRAFTING);
+    //registration.addRecipeTransferHandler(MechanicalCrafterMenu.class, ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(),RecipeTypes.CRAFTING, 1, 9, 28, 36);
   }
 }
