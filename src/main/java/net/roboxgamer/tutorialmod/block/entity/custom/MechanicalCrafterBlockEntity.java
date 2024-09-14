@@ -89,12 +89,16 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return this.stacks;
     }
     
-    public NonNullList<ItemStack> getStacksCopy() {
+    public NonNullList<ItemStack> getStacksCopy(int startIndex) {
       var t = NonNullList.withSize(this.stacks.size(), ItemStack.EMPTY);
-      for (int i = 0; i < this.stacks.size(); i++) {
-        t.set(i, this.stacks.get(i).copy());
+      for (int i = startIndex; i < this.stacks.size(); i++) {
+        t.set(i - startIndex, this.stacks.get(i).copy());
       }
       return t;
+    }
+    
+    public NonNullList<ItemStack> getStacksCopy() {
+      return this.getStacksCopy(0);
     }
     
     public boolean isCompletelyEmpty() {
@@ -374,13 +378,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (this.craftingSlots.isCompletelyEmpty()) return null;
     RecipeManager recipes = level.getRecipeManager();
     RecipeType<CraftingRecipe> recipeType = RecipeType.CRAFTING;
-    var l = this.craftingSlots.getStacks();
-    NonNullList<ItemStack> l2 = NonNullList.withSize(l.size(), ItemStack.EMPTY);
-    for (int i = 1; i < l.size(); i++) {
-      l2.set(i - 1, l.get(i));
-    }
+    var l = this.craftingSlots.getStacksCopy(1);
+    var l2 = this.inputSlots.getStacksCopy();
     //TutorialMod.LOGGER.info("l2: {}", l2);
-    CraftingInput input = CraftingInput.of(3, 3, l2);
+    CraftingInput input = CraftingInput.of(3, 3, l);
     List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(recipeType, input, level);
     if (list.isEmpty()) {
       this.result = null;
