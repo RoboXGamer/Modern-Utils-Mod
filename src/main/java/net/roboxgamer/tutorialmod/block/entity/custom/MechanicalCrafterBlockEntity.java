@@ -453,10 +453,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     
     // Construct the CraftingInput with the matched items
-    CraftingInput input = CraftingInput.of(3, 3, matchedItems);
-    TutorialMod.LOGGER.debug("input: {}", input.items());
-    
-    return input;
+    return CraftingInput.of(3, 3, matchedItems);
   }
   
   private boolean inputCheck(List<ItemStack> input, List<Ingredient> ingredients) {
@@ -555,7 +552,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
     // Get the crafting input from the actual input
     CraftingInput input = getCraftingInputFromActualInput(this.craftingInputList);
-    TutorialMod.LOGGER.info("input: {}", input);
+    TutorialMod.LOGGER.debug("input: {}", input.items());
     // Now take the items out of the input
     inputCheck(getInputStacks(), ingredients);
     

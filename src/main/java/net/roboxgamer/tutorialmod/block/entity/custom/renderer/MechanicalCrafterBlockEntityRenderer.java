@@ -51,7 +51,7 @@ public class MechanicalCrafterBlockEntityRenderer implements BlockEntityRenderer
     else {
       HologramBufferSource = bufferSource;
     }
-    RenderSystem.setShaderColor(0.0f, 0.5f, 0.8f, 0.5f);
+    RenderSystem.setShaderColor(0.6f, 0.6f, 1f, 0.85f);
     itemRenderer.renderStatic(
         renderStack,
         ItemDisplayContext.FIXED,
