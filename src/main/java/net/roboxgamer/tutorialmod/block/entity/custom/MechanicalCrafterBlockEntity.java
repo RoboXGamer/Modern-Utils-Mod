@@ -33,7 +33,9 @@ import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
   private static final int RESULT_SLOT = 0;
@@ -48,6 +50,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
   private int remainItemToggleValue = 1;
+  private List<ItemStack> craftingInputList;
   
   public int getRemainItemToggleValue() {
     return this.remainItemToggleValue;
@@ -378,10 +381,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (this.craftingSlots.isCompletelyEmpty()) return null;
     RecipeManager recipes = level.getRecipeManager();
     RecipeType<CraftingRecipe> recipeType = RecipeType.CRAFTING;
-    var l = this.craftingSlots.getStacksCopy(1);
-    var l2 = this.inputSlots.getStacksCopy();
-    //TutorialMod.LOGGER.info("l2: {}", l2);
-    CraftingInput input = CraftingInput.of(3, 3, l);
+    var craftingSlotsStacksCopy = this.craftingSlots.getStacksCopy(1);
+    CraftingInput input = CraftingInput.of(3, 3, craftingSlotsStacksCopy);
+    this.craftingInputList = input.items();
     List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(recipeType, input, level);
     if (list.isEmpty()) {
       this.result = null;
@@ -396,7 +398,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return null;
     }
     if (this.result != null && this.result.is(result.getItem())) return foundRecipe.value();
-    this.remainingItems = foundRecipe.value().getRemainingItems(input);
     this.result = result;
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
@@ -420,6 +421,42 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return recipe;
     }
     return foundRecipe.value();
+  }
+  
+  private CraftingInput getCraftingInputFromActualInput(List<ItemStack> items) {
+    // Get a copy of the input slots' stacks
+    var inputSlotStacks = this.inputSlots.getStacksCopy();
+    
+    // Make a copy of the items list passed as a parameter
+    ArrayList<ItemStack> itemsToMatch = items.stream().map(ItemStack::copy).collect(Collectors.toCollection(ArrayList::new));
+    
+    // Prepare a list for the crafting input with 9 slots (3x3)
+    var matchedItems = NonNullList.withSize(9, ItemStack.EMPTY);
+    
+    // Iterate through the input slots and attempt to match the items
+    for (int slotIndex = 0; slotIndex < inputSlotStacks.size(); slotIndex++) {
+      ItemStack inputSlotItem = inputSlotStacks.get(slotIndex);
+      
+      // Iterate through the items to match
+      for (int matchIndex = 0; matchIndex < itemsToMatch.size(); matchIndex++) {
+        ItemStack matchingItem = itemsToMatch.get(matchIndex);
+        
+        // If items match by type, copy the count from the matching item
+        if (matchingItem.is(inputSlotItem.getItem())) {
+          matchedItems.set(slotIndex, inputSlotItem.copyWithCount(matchingItem.getCount()));
+          
+          // Remove the matched item from the list to avoid further matches
+          itemsToMatch.remove(matchIndex);
+          break;  // Break the inner loop and move to the next input slot
+        }
+      }
+    }
+    
+    // Construct the CraftingInput with the matched items
+    CraftingInput input = CraftingInput.of(3, 3, matchedItems);
+    TutorialMod.LOGGER.debug("input: {}", input.items());
+    
+    return input;
   }
   
   private boolean inputCheck(List<ItemStack> input, List<Ingredient> ingredients) {
@@ -516,7 +553,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private void craft() {
     // Get the list of ingredients from the recipe
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
-    
+    // Get the crafting input from the actual input
+    CraftingInput input = getCraftingInputFromActualInput(this.craftingInputList);
+    TutorialMod.LOGGER.info("input: {}", input);
     // Now take the items out of the input
     inputCheck(getInputStacks(), ingredients);
     
@@ -547,6 +586,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
     //TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
+    this.remainingItems = this.recipe.getRemainingItems(input);
     for (ItemStack remainingItem : this.remainingItems) {
       //TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
