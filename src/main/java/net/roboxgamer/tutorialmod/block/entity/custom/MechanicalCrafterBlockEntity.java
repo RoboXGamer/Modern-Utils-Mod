@@ -29,6 +29,7 @@ import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.network.ItemStackPayload;
+import net.roboxgamer.tutorialmod.util.CustomFireworkRocketRecipe;
 import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -71,7 +72,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   public ItemStack getRenderStack() {
     if (this.result == null) return ItemStack.EMPTY;
-    if (this.result.is(Items.END_CRYSTAL)) return ItemStack.EMPTY;
+    if (ItemStack.isSameItemSameComponents(this.result, Items.END_CRYSTAL.getDefaultInstance())) return ItemStack.EMPTY;
     return this.result;
   }
   
@@ -399,7 +400,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (result.isEmpty()) {
       return null;
     }
-    if (this.result != null && this.result.is(result.getItem())) return foundRecipe.value();
+    if (this.result != null && ItemStack.isSameItemSameComponents(this.result,result)) return foundRecipe.value();
     this.result = result;
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
@@ -419,6 +420,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         }
         ingredients.set(i, arrowIngredient);
       }
+      recipe.setIngredients(ingredients);
+      return recipe;
+    } else if (foundRecipe.value() instanceof FireworkRocketRecipe rec) {
+      CustomFireworkRocketRecipe recipe = new CustomFireworkRocketRecipe(rec);
+      NonNullList<Ingredient> ingredients = NonNullList.copyOf(
+          this.craftingSlots.getStacksCopy(1).stream().map(Ingredient::of).toList()
+      );
+      
       recipe.setIngredients(ingredients);
       return recipe;
     }
@@ -444,7 +453,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         ItemStack matchingItem = itemsToMatch.get(matchIndex);
         
         // If items match by type, copy the count from the matching item
-        if (matchingItem.is(inputSlotItem.getItem())) {
+        if (ItemStack.isSameItemSameComponents(matchingItem, inputSlotItem)) {
           matchedItems.set(slotIndex, inputSlotItem.copyWithCount(matchingItem.getCount()));
           
           // Remove the matched item from the list to avoid further matches
@@ -471,7 +480,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         if (ingredient.test(inputItem)) {
           // Find the specific ingredient option that matches the input item
           for (ItemStack possibleMatch : ingredient.getItems()) {
-            if (possibleMatch.is(inputItem.getItem())) {
+            if (ItemStack.isSameItemSameComponents(possibleMatch, inputItem)) {
               // Check if we have enough of the input item to satisfy the ingredient
               int requiredCount = possibleMatch.getCount();
               
@@ -533,7 +542,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         // If the output slot is empty, it can hold the full remaining count
         remainingCount = 0;
         break;
-      } else if (outputSlot.is(result.getItem())) {
+      } else if (ItemStack.isSameItemSameComponents(outputSlot, result)) {
         // If the output slot contains the same item, calculate the available space
         int spaceAvailable = outputSlot.getMaxStackSize() - outputSlot.getCount();
         remainingCount -= Math.min(remainingCount, spaceAvailable);
@@ -569,7 +578,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         this.outputSlots.setStackInSlot(i, result);
         remainingCount = 0;
         break;
-      } else if (outputSlot.is(result.getItem())) {
+      } else if (ItemStack.isSameItemSameComponents(outputSlot,result)) {
         int spaceAvailable = outputSlot.getMaxStackSize() - outputSlot.getCount();
         int amountToAdd = Math.min(remainingCount, spaceAvailable);
         outputSlot.grow(amountToAdd);
@@ -592,7 +601,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (remainingItem.isEmpty()) continue;
       for (int j = 0; j < toPlaceIn.getSlots(); j++) {
         ItemStack slot = toPlaceIn.getStackInSlot(j);
-        if (slot.is(remainingItem.getItem())) {
+        if (ItemStack.isSameItemSameComponents(slot,remainingItem)) {
           int spaceAvailable = slot.getMaxStackSize() - slot.getCount();
           int amountToAdd = Math.min(remainingCount, spaceAvailable);
           slot.grow(amountToAdd);
