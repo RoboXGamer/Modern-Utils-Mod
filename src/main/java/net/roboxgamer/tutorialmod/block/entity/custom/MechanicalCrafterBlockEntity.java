@@ -406,38 +406,46 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
       this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
     // Special case for tipped arrows recipe
-    if (foundRecipe.value() instanceof TippedArrowRecipe rec) {
-      CustomTippedArrowRecipe recipe = new CustomTippedArrowRecipe(rec);
-      ItemStack potion = input.getItem(1, 1);
-      Ingredient arrowIngredient = Ingredient.of(Items.ARROW);
-      Ingredient potionIngredient = Ingredient.of(potion);
-      NonNullList<Ingredient> ingredients = NonNullList.withSize(10, Ingredient.EMPTY);
-      
-      for (int i = 0; i <= 9; i++) {
-        if (i == 4){
-          ingredients.set(i, potionIngredient);
-          continue;
+    switch (foundRecipe.value()) {
+      case TippedArrowRecipe rec -> {
+        CustomTippedArrowRecipe recipe = new CustomTippedArrowRecipe(rec);
+        ItemStack potion = input.getItem(1, 1);
+        Ingredient arrowIngredient = Ingredient.of(Items.ARROW);
+        Ingredient potionIngredient = Ingredient.of(potion);
+        NonNullList<Ingredient> ingredients = NonNullList.withSize(10, Ingredient.EMPTY);
+        
+        for (int i = 0; i <= 9; i++) {
+          if (i == 4) {
+            ingredients.set(i, potionIngredient);
+            continue;
+          }
+          ingredients.set(i, arrowIngredient);
         }
-        ingredients.set(i, arrowIngredient);
+        recipe.setIngredients(ingredients);
+        return recipe;
       }
-      recipe.setIngredients(ingredients);
-      return recipe;
-    } else if (foundRecipe.value() instanceof FireworkRocketRecipe rec) {
-      CustomFireworkRocketRecipe recipe = new CustomFireworkRocketRecipe(rec);
-      NonNullList<Ingredient> ingredients = NonNullList.copyOf(
-          this.craftingSlots.getStacksCopy(1).stream().map(Ingredient::of).toList()
-      );
+      case FireworkRocketRecipe rec -> {
+        CustomFireworkRocketRecipe recipe = new CustomFireworkRocketRecipe(rec);
+        NonNullList<Ingredient> ingredients = NonNullList.copyOf(
+            this.craftingSlots.getStacksCopy(1).stream().map(Ingredient::of).toList()
+        );
+        
+        recipe.setIngredients(ingredients);
+        return recipe;
+      }
       
-      recipe.setIngredients(ingredients);
-      return recipe;
+      
+      // Special cases that are not allowed
+      case RepairItemRecipe repairItemRecipe -> {
+        return null;
+      }
+      case MapCloningRecipe mapCloningRecipe -> {
+        return null;
+      }
+      default -> {
+      }
     }
     
-    // Special cases that are not allowed
-    if (foundRecipe.value() instanceof RepairItemRecipe) {
-      return null;
-    } else if (foundRecipe.value() instanceof MapCloningRecipe) {
-      return null;
-    }
     return foundRecipe.value();
   }
   
@@ -460,7 +468,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         ItemStack matchingItem = itemsToMatch.get(matchIndex);
         
         // If items match by type, copy the count from the matching item
-        if (ItemStack.isSameItemSameComponents(matchingItem, inputSlotItem)) {
+        if (ItemStack.isSameItem(matchingItem, inputSlotItem)) {
           matchedItems.set(slotIndex, inputSlotItem.copyWithCount(matchingItem.getCount()));
           
           // Remove the matched item from the list to avoid further matches
@@ -487,7 +495,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         if (ingredient.test(inputItem)) {
           // Find the specific ingredient option that matches the input item
           for (ItemStack possibleMatch : ingredient.getItems()) {
-            if (ItemStack.isSameItemSameComponents(possibleMatch, inputItem)) {
+            if (ItemStack.isSameItem(possibleMatch, inputItem)) {
               // Check if we have enough of the input item to satisfy the ingredient
               int requiredCount = possibleMatch.getCount();
               
@@ -570,7 +578,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
     // Get the crafting input from the actual input
     CraftingInput input = getCraftingInputFromActualInput(this.craftingInputList);
-    TutorialMod.LOGGER.debug("input: {}", input.items());
+    //TutorialMod.LOGGER.debug("input: {}", input.items());
+    
+    // Get the remaining items
+    this.remainingItems = this.recipe.getRemainingItems(input);
+    
     // Now take the items out of the input
     inputCheck(getInputStacks(), ingredients);
     
@@ -601,7 +613,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
     //TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
-    this.remainingItems = this.recipe.getRemainingItems(input);
     for (ItemStack remainingItem : this.remainingItems) {
       //TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
