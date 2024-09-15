@@ -70,7 +70,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   }
   
   public ItemStack getRenderStack() {
-    return this.result == null ? ItemStack.EMPTY : this.result;
+    if (this.result == null) return ItemStack.EMPTY;
+    if (this.result.is(Items.END_CRYSTAL)) return ItemStack.EMPTY;
+    return this.result;
   }
   
   public void setRenderStack(ItemStack itemStack) {
