@@ -86,9 +86,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       Component.translatable("gui." + location + ".button_text");
   
   private static final ResourceLocation TEXTURE =
-      ResourceLocation.fromNamespaceAndPath(TutorialMod.MODID, "textures/gui/mechanical_crafter_screen.png");
+      TutorialMod.location("textures/gui/mechanical_crafter_screen.png");
   
-  //
   private final BlockPos position;
   private final int imageWidth, imageHeight;
   
@@ -105,11 +104,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.imageWidth = 176;
     this.imageHeight = 235;
     this.inventoryLabelY = this.imageHeight - 92;
-  }
-  
-  @Override
-  public boolean isPauseScreen() {
-    return false;
   }
   
   @Override
@@ -183,14 +177,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.renderTooltip(guiGraphics, mouseX, mouseY);
 
   }
-  //public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-  //  super.render(guiGraphics, mouseX, mouseY, partialTick);
-  //  renderBlurredBackground(partialTick);
-  //  guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
-  //  for (Renderable renderable : this.renderables) {
-  //    renderable.render(guiGraphics, mouseX, mouseY, partialTick);
-  //  }
-  //}
   
   
   public @Nullable IGuiProperties getGuiProperties() {

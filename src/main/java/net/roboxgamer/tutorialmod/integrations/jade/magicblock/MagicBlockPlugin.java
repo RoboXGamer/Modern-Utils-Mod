@@ -11,7 +11,7 @@ import snownee.jade.api.WailaPlugin;
 @WailaPlugin
 public class MagicBlockPlugin implements IWailaPlugin {
   public static final ResourceLocation DATA =
-      ResourceLocation.fromNamespaceAndPath(TutorialMod.MODID,"data");
+      TutorialMod.location("data");
 
   @Override
   public void register(IWailaCommonRegistration registration) {

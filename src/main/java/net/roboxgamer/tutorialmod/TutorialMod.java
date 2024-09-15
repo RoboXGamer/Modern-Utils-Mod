@@ -45,10 +45,6 @@ public class TutorialMod {
   public static ResourceLocation location(String path){
     return ResourceLocation.fromNamespaceAndPath(MODID, path);
   }
-  
-  public ResourceLocation location(String namespace, String path){
-    return ResourceLocation.fromNamespaceAndPath(namespace, path);
-  }
 
   public TutorialMod(IEventBus modEventBus, ModContainer modContainer) {
     // Register the commonSetup method for modloading
@@ -56,8 +52,6 @@ public class TutorialMod {
 
     NeoForge.EVENT_BUS.register(this);
     
-    //modEventBus.addListener(this::register);
-
     ModCreativeModTabs.register(modEventBus);
 
     // Register the items
