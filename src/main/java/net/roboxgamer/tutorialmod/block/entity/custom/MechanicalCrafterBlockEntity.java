@@ -431,6 +431,13 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       recipe.setIngredients(ingredients);
       return recipe;
     }
+    
+    // Special cases that are not allowed
+    if (foundRecipe.value() instanceof RepairItemRecipe) {
+      return null;
+    } else if (foundRecipe.value() instanceof MapCloningRecipe) {
+      return null;
+    }
     return foundRecipe.value();
   }
   
