@@ -12,21 +12,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.TippedArrowRecipe;
+import net.minecraft.world.item.crafting.*;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.menu.CraftingGhostSlotItemHandler;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
 import net.roboxgamer.tutorialmod.network.GhostSlotTransferPayload;
-import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Optional;
 
 public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHandler<MechanicalCrafterMenu, RecipeHolder<CraftingRecipe>> {
@@ -68,7 +62,13 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
     }
     
     if (doTransfer) {
-      int[] slotMap = getSlotMap(ingredients);  // Get slot map for the recipe
+      int[] slotMap;
+      if (craftingRecipe instanceof ShapedRecipe shapedRecipe) {
+        slotMap = getSlotMap((shapedRecipe.getWidth()),(shapedRecipe.getHeight()));
+      }
+      else {
+        slotMap = getSlotMap();
+      }
       clearGhostSlots(container);  // Clear existing ghost items before transfer
       
       for (int i = 0; i < ingredients.size(); i++) {
@@ -92,11 +92,25 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
     return null;  // Success, no error
   }
   
-  private static int @NotNull [] getSlotMap(List<Ingredient> ingredients) {
-    if (ingredients.size() == 4) {
-      return new int[]{1, 2, 4, 5};  // 2x2 recipe
+  private static int @NotNull [] getSlotMap() {
+    return getSlotMap(0,0); // Shapeless recipe
+  }
+  
+  private static int @NotNull [] getSlotMap(int width,int height) {
+    if (width == 0 && height == 0) {
+      return new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
     }
-    return new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};  // 3x3 recipe
+    if (width == 2 && height == 2) {
+      return new int[]{1, 2, 4, 5};
+    } else if (width == 3 && height == 3) {
+      return new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};
+    } else if (width == 1) {
+      return new int[]{2,5,8};
+    }
+    else if (height == 1) {
+      return new int[]{4,5,6};
+    }
+    return new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};  // Default to 3x3 recipe
   }
   
   private void clearGhostSlots(MechanicalCrafterMenu container) {
