@@ -1,83 +1,22 @@
 package net.roboxgamer.tutorialmod.client.screen;
 
-import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
-import mezz.jei.api.gui.handlers.IGuiProperties;
-import mezz.jei.api.ingredients.ITypedIngredient;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
-import net.roboxgamer.tutorialmod.network.GhostSlotTransferPayload;
 import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalCrafterMenu> {
-  public static final IGhostIngredientHandler<MechanicalCrafterScreen> GHOST_INGREDIENT_HANDLER = new IGhostIngredientHandler<MechanicalCrafterScreen>() {
-    @Override
-    public <I> @NotNull List<Target<I>> getTargetsTyped(@NotNull MechanicalCrafterScreen gui, @NotNull ITypedIngredient<I> ingredient, boolean doStart) {
-      List<Target<I>> targets = new ArrayList<>();
-      
-      // Loop through crafting grid slots (indexes 1 to 9)
-      for (int slotIndex = 1; slotIndex <= 9; slotIndex++) {
-        Slot slot = gui.getMenu().getSlot(slotIndex);
-        
-        // Define the target area for this slot
-        Rect2i bounds = new Rect2i(
-            gui.getGuiLeft() + slot.x,
-            gui.getGuiTop() + slot.y,
-            17, 17  // 17x17 for slot size
-        );
-        
-        int finalSlotIndex = slotIndex;
-        targets.add(new Target<I>() {
-          @Override
-          public @NotNull Rect2i getArea() {
-            return bounds;
-          }
-          
-          @Override
-          public void accept(@NotNull I ingredient) {
-            if (ingredient instanceof ItemStack stack) {
-              // Set ghost item in the slot (handled server-side)
-              ItemStack ghostStack = stack.copy();
-              ghostStack.setCount(1);  // Ghost stack has 1 count
-              
-              // Send packet to the server to update the ghost slot
-              PacketDistributor.sendToServer(
-                  new GhostSlotTransferPayload(finalSlotIndex, ghostStack, gui.getMenu().getBlockEntity().getBlockPos())
-              );
-            }
-          }
-        });
-      }
-      
-      return targets;
-    }
-    
-    @Override
-    public void onComplete() {
-      // No-op
-    }
-  };
-  
   private static final String location =
       TutorialMod.MODID + ".mechanical_crafter_screen";
   private static final Component TITLE =
@@ -175,47 +114,5 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
 
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
     this.renderTooltip(guiGraphics, mouseX, mouseY);
-
-  }
-  
-  
-  public @Nullable IGuiProperties getGuiProperties() {
-    var minecraft = Minecraft.getInstance();
-    return new IGuiProperties() {
-      @Override
-      public @NotNull Class<? extends Screen> screenClass() {
-        return MechanicalCrafterScreen.class;
-      }
-      
-      @Override
-      public int guiLeft() {
-        return leftPos;
-      }
-      
-      @Override
-      public int guiTop() {
-        return topPos;
-      }
-      
-      @Override
-      public int guiXSize() {
-        return imageWidth;
-      }
-      
-      @Override
-      public int guiYSize() {
-        return imageHeight;
-      }
-      
-      @Override
-      public int screenWidth() {
-        return minecraft.getWindow().getScreenWidth();
-      }
-      
-      @Override
-      public int screenHeight() {
-        return minecraft.getWindow().getScreenHeight();
-      }
-    };
   }
 }
