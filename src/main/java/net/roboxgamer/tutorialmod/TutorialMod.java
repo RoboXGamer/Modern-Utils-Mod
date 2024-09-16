@@ -14,6 +14,7 @@ import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.block.entity.custom.renderer.MechanicalCrafterBlockEntityRenderer;
 import net.roboxgamer.tutorialmod.client.screen.MechanicalCrafterScreen;
 import net.roboxgamer.tutorialmod.item.ModCreativeModTabs;
+import net.roboxgamer.tutorialmod.item.ModCustomDataComponents;
 import net.roboxgamer.tutorialmod.item.ModItems;
 import net.roboxgamer.tutorialmod.menu.ModMenuTypes;
 import net.roboxgamer.tutorialmod.network.*;
@@ -56,7 +57,8 @@ public class TutorialMod {
 
     // Register the items
     ModItems.register(modEventBus);
-
+    ModCustomDataComponents.register(modEventBus);
+    
     // Register the blocks
     ModBlocks.register(modEventBus);
 
