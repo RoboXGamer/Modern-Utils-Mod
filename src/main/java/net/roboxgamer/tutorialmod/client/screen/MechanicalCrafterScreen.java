@@ -41,17 +41,14 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     super(menu,playerInv,title);
     this.position = menu.getBlockEntity().getBlockPos();
     this.imageWidth = 176;
-    this.imageHeight = 235;
+    this.imageHeight = 236;
     this.inventoryLabelY = this.imageHeight - 92;
   }
   
   @Override
   protected void init() {
-    super.init();
-    
-    // Already set in super
-    //this.leftPos = this.width / 2 - this.imageWidth / 2;
-    //this.topPos = this.height / 2 - this.imageHeight / 2;
+    this.leftPos = this.width / 2 - this.imageWidth / 2;
+    this.topPos = this.height / 2 - this.imageHeight / 2;
     
     if (this.minecraft == null) return;
     Level level = this.minecraft.level;
