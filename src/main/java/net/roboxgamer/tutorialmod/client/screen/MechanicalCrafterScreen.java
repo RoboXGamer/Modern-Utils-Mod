@@ -13,6 +13,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
+import net.roboxgamer.tutorialmod.network.RedstoneModePayload;
 import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
 import org.jetbrains.annotations.NotNull;
 
@@ -26,6 +27,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   
   private static final ResourceLocation TEXTURE =
       TutorialMod.location("textures/gui/mechanical_crafter_screen.png");
+  private static final Component REDSTONE_MODE_BUTTON_TEXT =
+      Component.translatable("gui." + location + ".redstone_mode_button_text");
   
   private final BlockPos position;
   private final int imageWidth, imageHeight;
@@ -35,6 +38,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   
   //Widgets
   private Button button;
+  private ImageButton redstoneModeButton;
   
   
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
@@ -73,13 +77,41 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
             TutorialMod.location("toggle_remain_btn_highlighted")
     ),this::handleButtonClick,BUTTON_TEXT)
             );
-    this.button.setTooltip(Tooltip.create(Component.literal("Toggles the input/output of the remaining items")));
+    this.button.setTooltip(Tooltip.create(Component.literal("Toggles the input/output of the remaining items").append(
+        Component.literal(" [" + this.blockEntity.getRemainItemToggleDisplayValue() + "]")
+    )));
+    
+    this.redstoneModeButton = addRenderableWidget(
+        new ImageButton(this.leftPos + this.imageWidth - 56,this.topPos + 64,20,20,
+                        new WidgetSprites(
+            TutorialMod.location("redstone_mode_btn"),
+            TutorialMod.location("redstone_mode_btn_disabled"),
+            TutorialMod.location("redstone_mode_btn_highlighted")
+        ),this::handleRedstoneModeButtonClick,REDSTONE_MODE_BUTTON_TEXT)
+    );
+    this.redstoneModeButton.setTooltip(
+        Tooltip.create(Component.translatable("gui." + location + ".redstone_mode_button_text").append(
+            Component.literal(" [" + this.blockEntity.getRedstoneMode().name() + "]")
+        )));
+  }
+  
+  private void handleRedstoneModeButtonClick(Button button) {
+    blockEntity.setRedstoneMode(this.blockEntity.getNextRedstoneMode());
+    var mode = this.blockEntity.getRedstoneMode(); // Get the current redstone mode
+    PacketDistributor.sendToServer(new RedstoneModePayload(mode.ordinal(), this.blockEntity.getBlockPos()));
+    this.redstoneModeButton.setTooltip(
+        Tooltip.create(Component.translatable("gui." + location + ".redstone_mode_button_text").append(
+            Component.literal(" [" + mode.name() + "]")
+        )));
   }
   
   private void handleButtonClick(Button button) {
     var value = this.blockEntity.toggleRemainItemValue();
     TutorialMod.LOGGER.debug("Toggled remainItemToggleValue to {}", value);
     PacketDistributor.sendToServer(new RemainItemTogglePayload(value, this.blockEntity.getBlockPos()));
+    this.button.setTooltip(Tooltip.create(Component.literal("Toggles the input/output of the remaining items").append(
+        Component.literal(" [" + this.blockEntity.getRemainItemToggleDisplayValue() + "]")
+    )));
   }
   
   private void renderScreen(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {

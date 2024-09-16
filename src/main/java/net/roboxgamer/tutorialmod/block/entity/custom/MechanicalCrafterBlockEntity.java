@@ -5,6 +5,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -19,6 +20,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -36,12 +38,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
   private static final int RESULT_SLOT = 0;
   public Component TITLE = Component.translatable("block.tutorialmod.mechanical_crafter_block");
-  private int tc = 0;
+  public int tc = 0;
   private CraftingRecipe recipe;
   private ItemStack result;
   private NonNullList<ItemStack> remainingItems;
@@ -53,8 +56,35 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
   
-  public int getRemainItemToggleValue() {
-    return this.remainItemToggleValue;
+  public RedstoneMode getNextRedstoneMode() {
+    return RedstoneMode.values()[(this.redstoneMode.ordinal() + 1) % RedstoneMode.values().length];
+  }
+  
+  public enum RedstoneMode {
+    ALWAYS_ON,
+    REDSTONE_ON,
+    REDSTONE_OFF
+  }
+  // I want a map to map int to redstone mode
+  public static final Map<Integer, RedstoneMode> REDSTONE_MODE_MAP = Map.of(
+      0, RedstoneMode.ALWAYS_ON,
+      1, RedstoneMode.REDSTONE_ON,
+      2, RedstoneMode.REDSTONE_OFF
+  );
+  
+  private RedstoneMode redstoneMode = RedstoneMode.ALWAYS_ON;
+  
+  public RedstoneMode getRedstoneMode() {
+    return this.redstoneMode;
+  }
+  
+  public void setRedstoneMode(RedstoneMode mode) {
+    this.redstoneMode = mode;
+    setChanged();
+  }
+  
+  public String getRemainItemToggleDisplayValue() {
+    return this.remainItemToggleValue == 0 ? "Input" : "Output";
   }
   
   public void setRemainItemToggleValue(int value){
@@ -288,14 +318,28 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   
   public void tick() {
-//  Ticking logic
+    // Ticking logic
     this.tc++;
     if (this.tc == 20 * 60) this.tc = 0; // Every 1 minute
-    //TutorialMod.LOGGER.debug("tc: {}", this.tc);
+    
     Level level = this.getLevel();
-    if (level == null) return;
-    if (level.isClientSide()) return;
-    if (!(level instanceof ServerLevel slevel)) return;
+    if (level == null || level.isClientSide() || !(level instanceof ServerLevel)) return;
+    
+    // Redstone control logic
+    boolean powered = level.hasNeighborSignal(this.getBlockPos());
+    
+    switch (this.redstoneMode) {
+      case ALWAYS_ON:
+        break; // No additional check, always allows crafting
+      
+      case REDSTONE_ON:
+        if (!powered) return; // Only craft if receiving redstone power
+        break;
+      
+      case REDSTONE_OFF:
+        if (powered) return; // Stop crafting if receiving redstone power
+        break;
+    }
     
     if (this.tc == 20) {
       this.recipe = getRecipe((ServerLevel) this.level);
@@ -303,18 +347,13 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
       }
     }
-
-    BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
-    if (!(blockEntity instanceof MechanicalCrafterBlockEntity)) return;
     
-    // *** Logic for crafting ***
-    
-   if (everySecond()) {
-     if (canCraft()) {
-       //TutorialMod.LOGGER.info("Can Craft!");
-       craft();
-     }
-   }
+    if (everySecond()) {
+      if (canCraft()) {
+        craft();
+      }
+    }
+  
     
     
     // REFERENCE CODE
@@ -611,7 +650,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     // Handle remaining items
     remainingCount = 0;
-    var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
+    var toPlaceIn = this.remainItemToggleValue == 0 ? this.inputSlots : this.outputSlots;
     //TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
     for (ItemStack remainingItem : this.remainingItems) {
       //TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
@@ -704,6 +743,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   @Override
   public @NotNull CompoundTag getUpdateTag(HolderLookup.@NotNull Provider registries) {
     return getTutorialModData(registries);
+  }
+  
+  @Override
+  public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider lookupProvider) {
+    super.handleUpdateTag(tag, lookupProvider);
   }
   
   @Override

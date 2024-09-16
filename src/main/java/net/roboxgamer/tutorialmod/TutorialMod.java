@@ -125,7 +125,7 @@ public class TutorialMod {
       registrar.playBidirectional(
           RemainItemTogglePayload.TYPE,
           RemainItemTogglePayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
+          new DirectionalPayloadHandler<RemainItemTogglePayload>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData
           )
@@ -133,7 +133,7 @@ public class TutorialMod {
       registrar.playBidirectional(
           ItemStackPayload.TYPE,
           ItemStackPayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
+          new DirectionalPayloadHandler<ItemStackPayload>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData
           )
@@ -141,7 +141,15 @@ public class TutorialMod {
       registrar.playBidirectional(
           GhostSlotTransferPayload.TYPE,
           GhostSlotTransferPayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
+          new DirectionalPayloadHandler<GhostSlotTransferPayload>(
+              ClientPayloadHandler::handleData,
+              ServerPayloadHandler::handleData
+          )
+      );
+      registrar.playBidirectional(
+          RedstoneModePayload.TYPE,
+          RedstoneModePayload.STREAM_CODEC,
+          new DirectionalPayloadHandler<RedstoneModePayload>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData
           )
