@@ -41,6 +41,7 @@ public class MechanicalCrafterBlockEntityRenderer implements BlockEntityRenderer
   public void render(@NotNull MechanicalCrafterBlockEntity blockEntity, float partialTick, @NotNull PoseStack poseStack, @NotNull MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
     ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
     ItemStack renderStack = blockEntity.getRenderStack();
+    renderStack = ItemStack.EMPTY;
     poseStack.pushPose();
     poseStack.translate(0.5f, 1.25f, 0.5f);
     poseStack.scale(0.5f, 0.5f, 0.5f);

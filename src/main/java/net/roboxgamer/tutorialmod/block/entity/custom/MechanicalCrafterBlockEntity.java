@@ -38,10 +38,7 @@ import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
@@ -328,7 +325,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
     // *** Logic for crafting ***
 
-    if (everySecond(0.1)) {
+    if (everySecond(0.5)) {
       if (canCraft()) {
         // TutorialMod.LOGGER.info("Can Craft!");
         craft();
@@ -407,81 +404,131 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   }
   
   private void autoImport() {
-    if (this.recipe == null) {
-      return; // No recipe to import for
+    if (this.recipe == null) return;
+    
+    List<IngredientNeed> neededItems = calculateNeededItems();
+    if (neededItems.isEmpty()) return;
+    
+    importFromAdjacentInventories(neededItems);
+    optimizeItemPlacement();
+  }
+  
+  private static class IngredientNeed {
+    final Ingredient ingredient;
+    final int slot;
+    
+    IngredientNeed(Ingredient ingredient, int slot) {
+      this.ingredient = ingredient;
+      this.slot = slot;
     }
+  }
+  
+  private List<IngredientNeed> calculateNeededItems() {
+    List<IngredientNeed> neededItems = new ArrayList<>();
+    List<Ingredient> recipeIngredients = this.recipe.getIngredients();
     
-    // Get the list of ingredients needed for the current recipe
-    NonNullList<Ingredient> neededIngredients = this.recipe.getIngredients();
-    
-    // Create a map to track how many of each item we need
-    Map<Item, Integer> itemsNeeded = new HashMap<>();
-    
-    // Populate the itemsNeeded map
-    for (Ingredient ingredient : neededIngredients) {
-      ItemStack[] matchingStacks = ingredient.getItems();
-      if (matchingStacks.length > 0) {
-        Item item = matchingStacks[0].getItem(); // Use the first matching item
-        itemsNeeded.put(item, itemsNeeded.getOrDefault(item, 0) + 1);
-      }
-    }
-    
-    // Subtract items already in the input slots
-    for (int i = 0; i < this.inputSlots.getSlots(); i++) {
-      ItemStack stack = this.inputSlots.getStackInSlot(i);
-      if (!stack.isEmpty()) {
-        int count = itemsNeeded.getOrDefault(stack.getItem(), 0);
-        if (count > 0) {
-          itemsNeeded.put(stack.getItem(), Math.max(0, count - stack.getCount()));
+    for (int i = 0; i < recipeIngredients.size(); i++) {
+      Ingredient ingredient = recipeIngredients.get(i);
+      if (ingredient == Ingredient.EMPTY) continue; // Skip empty ingredients
+      
+      ItemStack existingStack = this.inputSlots.getStackInSlot(i);
+      if (existingStack.isEmpty() || !ingredient.test(existingStack)) {
+        // Check if the ingredient is already present in other slots
+        boolean found = false;
+        for (int j = 0; j < this.inputSlots.getSlots(); j++) {
+          if (i != j) {
+            ItemStack otherStack = this.inputSlots.getStackInSlot(j);
+            if (!otherStack.isEmpty() && ingredient.test(otherStack)) {
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          neededItems.add(new IngredientNeed(ingredient, i));
         }
       }
     }
     
-    // Import needed items from adjacent inventories
+    return neededItems;
+  }
+  
+  private void importFromAdjacentInventories(List<IngredientNeed> neededItems) {
     for (Direction direction : Direction.values()) {
+      if (neededItems.isEmpty()) return;
+      
       BlockPos pos = this.getBlockPos().relative(direction);
-      BlockState state = this.level.getBlockState(pos);
-      if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock) {
-        IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
-        if (cap == null) continue;
+      BlockEntity blockEntity = this.level.getBlockEntity(pos);
+      if (blockEntity == null) continue;
+      
+      IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
+      if (cap == null) continue;
+      
+      Iterator<IngredientNeed> iterator = neededItems.iterator();
+      while (iterator.hasNext()) {
+        IngredientNeed need = iterator.next();
+        boolean found = false;
         
-        for (Map.Entry<Item, Integer> entry : itemsNeeded.entrySet()) {
-          Item neededItem = entry.getKey();
-          int neededCount = entry.getValue();
-          if (neededCount <= 0) continue;
-          
-          for (int slot = 0; slot < cap.getSlots(); slot++) {
-            ItemStack extractedStack = cap.extractItem(slot, neededCount, true);
-            if (!extractedStack.isEmpty() && extractedStack.getItem() == neededItem) {
-              ItemStack actualExtracted = cap.extractItem(slot, neededCount, false);
-              int imported = putInInputSlots(this.inputSlots, actualExtracted);
-              neededCount -= imported;
-              itemsNeeded.put(neededItem, neededCount);
-              if (neededCount <= 0) break;
+        for (int slot = 0; slot < cap.getSlots(); slot++) {
+          ItemStack extractedStack = cap.extractItem(slot, 1, true); // Simulate extraction
+          if (!extractedStack.isEmpty() && need.ingredient.test(extractedStack)) {
+            ItemStack actualExtracted = cap.extractItem(slot, 1, false); // Actually extract
+            if (putInInputSlots(this.inputSlots, actualExtracted)) {
+              found = true;
+              break;
             }
           }
+        }
+        
+        if (found) {
+          iterator.remove(); // Remove this need from the list
         }
       }
     }
   }
   
-  private int putInInputSlots(ItemStackHandler inputSlots, ItemStack stack) {
-    int remaining = stack.getCount();
+  private boolean putInInputSlots(ItemStackHandler inputSlots, ItemStack stack) {
+    // First, try to stack with existing items
     for (int i = 0; i < inputSlots.getSlots(); i++) {
-      if (remaining <= 0) break;
-      ItemStack slotStack = inputSlots.getStackInSlot(i);
-      if (slotStack.isEmpty()) {
-        int toInsert = Math.min(remaining, stack.getMaxStackSize());
-        inputSlots.setStackInSlot(i, stack.split(toInsert));
-        remaining -= toInsert;
-      } else if (ItemStack.isSameItemSameComponents(slotStack, stack)) {
-        int space = slotStack.getMaxStackSize() - slotStack.getCount();
-        int toInsert = Math.min(space, remaining);
-        slotStack.grow(toInsert);
-        remaining -= toInsert;
+      ItemStack existingStack = inputSlots.getStackInSlot(i);
+      if (!existingStack.isEmpty() && ItemStack.isSameItemSameComponents(existingStack, stack)) {
+        if (existingStack.getCount() < existingStack.getMaxStackSize()) {
+          existingStack.grow(1);
+          inputSlots.setStackInSlot(i, existingStack);
+          return true;
+        }
       }
     }
-    return stack.getCount() - remaining;
+    
+    // If stacking wasn't possible, find the first empty slot
+    for (int i = 0; i < inputSlots.getSlots(); i++) {
+      if (inputSlots.getStackInSlot(i).isEmpty()) {
+        inputSlots.setStackInSlot(i, stack);
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  private void optimizeItemPlacement() {
+    List<ItemStack> items = new ArrayList<>();
+    for (int i = 0; i < this.inputSlots.getSlots(); i++) {
+      ItemStack stack = this.inputSlots.extractItem(i, 64, false);
+      if (!stack.isEmpty()) {
+        items.add(stack);
+      }
+    }
+    
+    items.sort((a, b) -> {
+      if (a.getItem() == b.getItem()) return 0;
+      return a.getItem().toString().compareTo(b.getItem().toString());
+    });
+    
+    int slotIndex = 0;
+    for (ItemStack stack : items) {
+      this.inputSlots.insertItem(slotIndex++, stack, false);
+    }
   }
   
   private void autoExport() {
@@ -492,7 +539,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     for (Direction direction : Direction.values()) {
       BlockPos pos = this.getBlockPos().relative(direction);
       BlockState state = this.level.getBlockState(pos);
-      if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock) {
+      if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock eb) {
+        if (level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity) return;
         // Get the item handler from the block entity
         IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
         if (cap == null)
