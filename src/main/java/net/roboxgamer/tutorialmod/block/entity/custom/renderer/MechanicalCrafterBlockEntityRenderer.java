@@ -2,7 +2,9 @@ package net.roboxgamer.tutorialmod.block.entity.custom.renderer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -19,55 +21,43 @@ import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEnti
 import org.jetbrains.annotations.NotNull;
 
 public class MechanicalCrafterBlockEntityRenderer implements BlockEntityRenderer<MechanicalCrafterBlockEntity> {
-  
+  float rotation = 0f;
+  CustomItemRenderer customItemRenderer;
   public MechanicalCrafterBlockEntityRenderer(BlockEntityRendererProvider.Context context) {}
   
-  private static class HologramBufferSource implements MultiBufferSource {
-    private final BufferSource bufferSource;
-    
-    public HologramBufferSource(MultiBufferSource.BufferSource bufferSource) {
-      this.bufferSource = bufferSource;
-    }
-    @Override
-    public @NotNull VertexConsumer getBuffer(@NotNull RenderType renderType) {
-      return this.bufferSource.getBuffer(RenderType.translucent());
-    }
-    
-    public void endBatch() {
-      this.bufferSource.endBatch();
-    }
-  }
   @Override
   public void render(@NotNull MechanicalCrafterBlockEntity blockEntity, float partialTick, @NotNull PoseStack poseStack, @NotNull MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
-    ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
+    ItemRenderer itemRenderer = getCustomItemRenderer();
     ItemStack renderStack = blockEntity.getRenderStack();
-    renderStack = ItemStack.EMPTY;
     poseStack.pushPose();
     poseStack.translate(0.5f, 1.25f, 0.5f);
     poseStack.scale(0.5f, 0.5f, 0.5f);
-    MultiBufferSource HologramBufferSource;
-    if (bufferSource instanceof MultiBufferSource.BufferSource) {
-      HologramBufferSource = new HologramBufferSource((MultiBufferSource.BufferSource) bufferSource);
-    }
-    else {
-      HologramBufferSource = bufferSource;
-    }
-    RenderSystem.setShaderColor(0.6f, 0.6f, 1f, 0.85f);
+    poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
+    rotation += .5f;
+    if (rotation > 360) rotation = 0;
     itemRenderer.renderStatic(
         renderStack,
         ItemDisplayContext.FIXED,
         getLightLevel(blockEntity.getLevel(), blockEntity.getBlockPos().above()),
         OverlayTexture.NO_OVERLAY,
         poseStack,
-        HologramBufferSource,
+        bufferSource,
         blockEntity.getLevel(),
         1
     );
-    if (HologramBufferSource instanceof HologramBufferSource) {
-      ((HologramBufferSource) HologramBufferSource).endBatch();
-    }
-    RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
     poseStack.popPose();
+  }
+  
+  private ItemRenderer getCustomItemRenderer() {
+    Minecraft minecraft = Minecraft.getInstance();
+    BlockEntityWithoutLevelRenderer blockentitywithoutlevelrenderer = new BlockEntityWithoutLevelRenderer(
+        Minecraft.getInstance().getBlockEntityRenderDispatcher(),
+        minecraft.getEntityModels()
+    );
+    if (customItemRenderer == null) {
+      customItemRenderer = new CustomItemRenderer(minecraft, minecraft.getTextureManager(), minecraft.getModelManager(), minecraft.getItemColors(), blockentitywithoutlevelrenderer);
+    }
+    return customItemRenderer;
   }
   
   private int getLightLevel(Level level, BlockPos pos) {
