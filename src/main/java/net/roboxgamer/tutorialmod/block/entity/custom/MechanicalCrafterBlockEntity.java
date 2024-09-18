@@ -16,7 +16,6 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
@@ -33,8 +32,7 @@ import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.network.ItemStackPayload;
-import net.roboxgamer.tutorialmod.util.CustomFireworkRocketRecipe;
-import net.roboxgamer.tutorialmod.util.CustomTippedArrowRecipe;
+import net.roboxgamer.tutorialmod.util.CustomRecipeExtender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -304,16 +302,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (everySecond(60))
       this.tc = 0; // Every 1 minute
     // TutorialMod.LOGGER.debug("tc: {}", this.tc);
-    Level level = this.getLevel();
-    if (level == null)
-      return;
-    if (level.isClientSide())
-      return;
-    if (!(level instanceof ServerLevel slevel))
+    if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel slevel))
       return;
 
     if (this.tc == 20) {
-      this.recipe = getRecipe((ServerLevel) this.level);
+      this.recipe = getRecipe(slevel);
       if (this.result != null) {
         PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
       }
@@ -413,14 +406,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     optimizeItemPlacement();
   }
   
-  private static class IngredientNeed {
-    final Ingredient ingredient;
-    final int slot;
-    
-    IngredientNeed(Ingredient ingredient, int slot) {
-      this.ingredient = ingredient;
-      this.slot = slot;
-    }
+  private record IngredientNeed(Ingredient ingredient, int slot, int count) {
   }
   
   private List<IngredientNeed> calculateNeededItems() {
@@ -431,22 +417,24 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       Ingredient ingredient = recipeIngredients.get(i);
       if (ingredient == Ingredient.EMPTY) continue; // Skip empty ingredients
       
-      ItemStack existingStack = this.inputSlots.getStackInSlot(i);
-      if (existingStack.isEmpty() || !ingredient.test(existingStack)) {
-        // Check if the ingredient is already present in other slots
-        boolean found = false;
-        for (int j = 0; j < this.inputSlots.getSlots(); j++) {
-          if (i != j) {
-            ItemStack otherStack = this.inputSlots.getStackInSlot(j);
-            if (!otherStack.isEmpty() && ingredient.test(otherStack)) {
-              found = true;
-              break;
-            }
-          }
+      ItemStack[] matchingStacks = ingredient.getItems();
+      if (matchingStacks.length == 0) continue; // Skip if no matching items
+      
+      ItemStack requiredStack = matchingStacks[0].copy(); // Use the first matching item as a representative
+      int requiredCount = requiredStack.getCount();
+      int foundCount = 0;
+      
+      // Check all input slots for this ingredient
+      for (int j = 0; j < this.inputSlots.getSlots(); j++) {
+        ItemStack slotStack = this.inputSlots.getStackInSlot(j);
+        if (!slotStack.isEmpty() && ingredient.test(slotStack)) {
+          foundCount += slotStack.getCount();
+          if (foundCount >= requiredCount) break;
         }
-        if (!found) {
-          neededItems.add(new IngredientNeed(ingredient, i));
-        }
+      }
+      
+      if (foundCount < requiredCount) {
+        neededItems.add(new IngredientNeed(ingredient, i, requiredCount - foundCount));
       }
     }
     
@@ -458,6 +446,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (neededItems.isEmpty()) return;
       
       BlockPos pos = this.getBlockPos().relative(direction);
+      if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel))
+        return;
       BlockEntity blockEntity = this.level.getBlockEntity(pos);
       if (blockEntity == null) continue;
       
@@ -533,13 +523,15 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private void autoExport() {
   //  Get output slots
+    if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel))
+      return;
     CustomItemStackHandler outputSlots = this.outputSlots;
     if (outputSlots.isCompletelyEmpty())
       return;
     for (Direction direction : Direction.values()) {
       BlockPos pos = this.getBlockPos().relative(direction);
       BlockState state = this.level.getBlockState(pos);
-      if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock eb) {
+      if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock) {
         if (level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity) return;
         // Get the item handler from the block entity
         IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
@@ -557,13 +549,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
             ItemStack inserted = cap.insertItem(j, itemToExport, false);
             if (inserted.isEmpty()){
               outputSlots.setStackInSlot(i, ItemStack.EMPTY);
+              break;
             }
             itemToExport.setCount(inserted.getCount()); // Update the count of the item remaining to export
-            break;
           }
         }
-      } else {
-        autoImport();
       }
     }
   }
@@ -589,52 +579,54 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (result.isEmpty()) {
       return null;
     }
-    if (this.result != null && ItemStack.isSameItemSameComponents(this.result, result))
-      return foundRecipe.value();
     this.result = result;
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
       this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
     // Special case for tipped arrows recipe
-    switch (foundRecipe.value()) {
-      case TippedArrowRecipe rec -> {
-        CustomTippedArrowRecipe recipe = new CustomTippedArrowRecipe(rec);
-        ItemStack potion = input.getItem(1, 1);
-        Ingredient arrowIngredient = Ingredient.of(Items.ARROW);
-        Ingredient potionIngredient = Ingredient.of(potion);
-        NonNullList<Ingredient> ingredients = NonNullList.withSize(10, Ingredient.EMPTY);
-
-        for (int i = 0; i <= 9; i++) {
-          if (i == 4) {
-            ingredients.set(i, potionIngredient);
-            continue;
-          }
-          ingredients.set(i, arrowIngredient);
+    CustomRecipeExtender<?> recipeToReturn = new CustomRecipeExtender<>(foundRecipe.value());
+    if (foundRecipe.value() instanceof TippedArrowRecipe rec){
+      CustomRecipeExtender<TippedArrowRecipe> recipe = new CustomRecipeExtender<>(rec);
+      ItemStack potion = input.getItem(1, 1);
+      Ingredient arrowIngredient = Ingredient.of(Items.ARROW);
+      Ingredient potionIngredient = Ingredient.of(potion);
+      NonNullList<Ingredient> ingredients = NonNullList.withSize(10, Ingredient.EMPTY);
+      
+      for (int i = 0; i <= 9; i++) {
+        if (i == 4) {
+          ingredients.set(i, potionIngredient);
+          continue;
         }
-        recipe.setIngredients(ingredients);
-        return recipe;
+        ingredients.set(i, arrowIngredient);
       }
-      case FireworkRocketRecipe rec -> {
-        CustomFireworkRocketRecipe recipe = new CustomFireworkRocketRecipe(rec);
-        NonNullList<Ingredient> ingredients = NonNullList.copyOf(
-            this.craftingSlots.getStacksCopy(1).stream().map(Ingredient::of).toList());
-
-        recipe.setIngredients(ingredients);
-        return recipe;
-      }
-
+      recipe.setIngredients(ingredients);
+      recipeToReturn = recipe;
+    } else if (foundRecipe.value() instanceof FireworkRocketRecipe rec) {
+      CustomRecipeExtender<FireworkRocketRecipe> recipe = new CustomRecipeExtender<>(rec);
+      NonNullList<Ingredient> ingredients = NonNullList.copyOf(
+          this.craftingSlots.getStacksCopy(1).stream().map(itemStack -> itemStack.copyWithCount(1)).map(
+              Ingredient::of).toList());
+      
+      recipe.setIngredients(ingredients);
+      recipeToReturn = recipe;
+    }else if (foundRecipe.value() instanceof FireworkStarRecipe rec){
+      CustomRecipeExtender<FireworkStarRecipe> recipe = new CustomRecipeExtender<>(rec);
+      NonNullList<Ingredient> ingredients = NonNullList.copyOf(
+          this.craftingSlots.getStacksCopy(1).stream()
+              .map(itemStack -> itemStack.copyWithCount(1))
+              .map(Ingredient::of)
+              .toList());
+      
+      recipe.setIngredients(ingredients);
+      recipeToReturn = recipe;
       // Special cases that are not allowed
-      case RepairItemRecipe repairItemRecipe -> {
-        return null;
-      }
-      case MapCloningRecipe mapCloningRecipe -> {
-        return null;
-      }
-      default -> {
-      }
+    } else if (foundRecipe.value() instanceof RepairItemRecipe) {
+      return null;
+    } else if (foundRecipe.value() instanceof MapCloningRecipe) {
+      return null;
     }
-
-    return foundRecipe.value();
+    
+    return recipeToReturn;
   }
 
   private CraftingInput getCraftingInputFromActualInput(List<ItemStack> items) {
@@ -809,10 +801,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle remaining items
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
-    // TutorialMod.LOGGER.info("toPlaceIn: {}",this.remainItemToggleValue == 1 ?
+    // TutorialMod.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ?
     // "Input" : "Output" );
     for (ItemStack remainingItem : this.remainingItems) {
-      // TutorialMod.LOGGER.info("remainingItem: {}", remainingItem);
+      // TutorialMod.LOGGER.debug("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
       if (remainingItem.isEmpty())
         continue;
@@ -836,17 +828,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
       setChanged();
     }
-  }
-
-  public void recheckRecipe(ServerLevel level) {
-    this.recipe = getRecipe(level);
-    if (this.recipe == null) {
-      this.result = ItemStack.EMPTY;
-      return;
-    }
-    this.result = this.recipe.getResultItem(level.registryAccess()).copy();
-    this.craftingSlots.setStackInSlot(0, this.result);
-    setChanged();
   }
 
   private boolean everySecond() {
@@ -895,7 +876,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.result = ItemStack.parseOptional(registries, tutorialmodData.getCompound("result"));
     if (tutorialmodData.contains("recipe")) {
       var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tutorialmodData.getCompound("recipe")).getOrThrow();
-      if (recipe instanceof CraftingRecipe craftingRecipe) {
+      if (recipe instanceof CraftingRecipe craftingRecipe){
         this.recipe = craftingRecipe;
       }
     }
