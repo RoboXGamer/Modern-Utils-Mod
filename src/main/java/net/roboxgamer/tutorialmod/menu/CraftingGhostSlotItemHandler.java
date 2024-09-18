@@ -4,9 +4,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
+import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nonnull;
 
 public class CraftingGhostSlotItemHandler extends SlotItemHandler {
   public CraftingGhostSlotItemHandler(IItemHandler itemHandler, int index, int xPosition, int yPosition) {
@@ -37,7 +36,10 @@ public class CraftingGhostSlotItemHandler extends SlotItemHandler {
     if (!stack.isEmpty()) {
       stack = stack.copy();
     }
-    super.set(stack);
+    var handler = this.getItemHandler();
+    if (!(handler instanceof MechanicalCrafterBlockEntity.CraftingSlotHandler craftingSlotHandler)) return;
+    craftingSlotHandler.setStackInSlot(this.getSlotIndex(), stack);
+    this.setChanged();
   }
   
   // Method to increase ghost item stack or set a new item if it's not a ghost item yet
