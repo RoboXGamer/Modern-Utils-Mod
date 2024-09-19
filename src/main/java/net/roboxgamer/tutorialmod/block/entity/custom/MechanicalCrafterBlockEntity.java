@@ -41,6 +41,23 @@ import java.util.stream.Collectors;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
   private static final int RESULT_SLOT = 0;
+  private static final Class<?>[] SPECIAL_RECIPES = new Class<?>[]{
+      TippedArrowRecipe.class,
+      FireworkRocketRecipe.class,
+      FireworkStarRecipe.class,
+      FireworkStarFadeRecipe.class,
+  };
+  private static final Class<?>[] BLACKLISTED_RECIPES = new Class<?>[]{
+      RepairItemRecipe.class,
+      MapCloningRecipe.class,
+      ArmorDyeRecipe.class,
+      BannerDuplicateRecipe.class,
+      BookCloningRecipe.class,
+      DecoratedPotRecipe.class,
+      ShieldDecorationRecipe.class,
+      ShulkerBoxColoring.class, // TODO: Needs more research
+      SuspiciousStewRecipe.class // TODO: Needs more research
+  };
   public Component TITLE = Component.translatable("block.tutorialmod.mechanical_crafter_block");
   private int tc = 0;
   private CraftingRecipe recipe;
@@ -151,9 +168,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be))
         return;
       be.recipe = be.getRecipe(slevel);
-      if (be.result == null)
+      if (be.recipe == null || be.result == null) {
         be.result = ItemStack.EMPTY;
+      }
       PacketDistributor.sendToAllPlayers(new ItemStackPayload(be.result, be.getBlockPos()));
+      be.craftingSlots.setStackInSlot(MechanicalCrafterBlockEntity.RESULT_SLOT, be.result);
     }
   }
 
@@ -307,9 +326,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
     if (this.tc == 20) {
       this.recipe = getRecipe(slevel);
-      if (this.result != null) {
-        PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
+      if (this.recipe == null || this.result == null) {
+        this.result = ItemStack.EMPTY;
       }
+      PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
+      this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
     }
 
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
@@ -412,7 +433,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private List<IngredientNeed> calculateNeededItems() {
     List<IngredientNeed> neededItems = new ArrayList<>();
     List<Ingredient> recipeIngredients = this.recipe.getIngredients();
-    
+    NonNullList<ItemStack> inputStacks = this.inputSlots.getStacksCopy();
     for (int i = 0; i < recipeIngredients.size(); i++) {
       Ingredient ingredient = recipeIngredients.get(i);
       if (ingredient == Ingredient.EMPTY) continue; // Skip empty ingredients
@@ -425,11 +446,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       int foundCount = 0;
       
       // Check all input slots for this ingredient
-      for (int j = 0; j < this.inputSlots.getSlots(); j++) {
-        ItemStack slotStack = this.inputSlots.getStackInSlot(j);
-        if (!slotStack.isEmpty() && ingredient.test(slotStack)) {
-          foundCount += slotStack.getCount();
-          if (foundCount >= requiredCount) break;
+      for (ItemStack slotStack : inputStacks) {
+        if (!slotStack.isEmpty() && ingredient.test(slotStack) && slotStack.getCount() >= requiredCount) {
+          foundCount += requiredCount;
+          slotStack.shrink(requiredCount);
+          break;
         }
       }
       
@@ -460,9 +481,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         boolean found = false;
         
         for (int slot = 0; slot < cap.getSlots(); slot++) {
-          ItemStack extractedStack = cap.extractItem(slot, 1, true); // Simulate extraction
+          ItemStack extractedStack = cap.extractItem(slot, need.count, true); // Simulate extraction
           if (!extractedStack.isEmpty() && need.ingredient.test(extractedStack)) {
-            ItemStack actualExtracted = cap.extractItem(slot, 1, false); // Actually extract
+            ItemStack actualExtracted = cap.extractItem(slot, need.count, false); // Actually extract
             if (putInInputSlots(this.inputSlots, actualExtracted)) {
               found = true;
               break;
@@ -574,61 +595,55 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst();
     // TutorialMod.LOGGER.debug("foundRecipe: {}", foundRecipe);
+    
     ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
-    // TutorialMod.LOGGER.debug("result: {}", result);
-    if (result.isEmpty()) {
-      return null;
-    }
+    if (result.isEmpty()) return null;
     this.result = result;
+    // TutorialMod.LOGGER.debug("Result: {}", this.result);
+    
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
       this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
-    // Special case for tipped arrows recipe
+    
+    
+    
     CustomRecipeExtender<?> recipeToReturn = new CustomRecipeExtender<>(foundRecipe.value());
-    if (foundRecipe.value() instanceof TippedArrowRecipe rec){
-      CustomRecipeExtender<TippedArrowRecipe> recipe = new CustomRecipeExtender<>(rec);
-      ItemStack potion = input.getItem(1, 1);
-      Ingredient arrowIngredient = Ingredient.of(Items.ARROW);
-      Ingredient potionIngredient = Ingredient.of(potion);
-      NonNullList<Ingredient> ingredients = NonNullList.withSize(10, Ingredient.EMPTY);
-      
-      for (int i = 0; i <= 9; i++) {
-        if (i == 4) {
-          ingredients.set(i, potionIngredient);
-          continue;
-        }
-        ingredients.set(i, arrowIngredient);
-      }
-      recipe.setIngredients(ingredients);
-      recipeToReturn = recipe;
-    } else if (foundRecipe.value() instanceof FireworkRocketRecipe rec) {
-      CustomRecipeExtender<FireworkRocketRecipe> recipe = new CustomRecipeExtender<>(rec);
-      NonNullList<Ingredient> ingredients = NonNullList.copyOf(
-          this.craftingSlots.getStacksCopy(1).stream().map(itemStack -> itemStack.copyWithCount(1)).map(
-              Ingredient::of).toList());
-      
-      recipe.setIngredients(ingredients);
-      recipeToReturn = recipe;
-    }else if (foundRecipe.value() instanceof FireworkStarRecipe rec){
-      CustomRecipeExtender<FireworkStarRecipe> recipe = new CustomRecipeExtender<>(rec);
-      NonNullList<Ingredient> ingredients = NonNullList.copyOf(
-          this.craftingSlots.getStacksCopy(1).stream()
-              .map(itemStack -> itemStack.copyWithCount(1))
-              .map(Ingredient::of)
-              .toList());
-      
-      recipe.setIngredients(ingredients);
-      recipeToReturn = recipe;
-      // Special cases that are not allowed
-    } else if (foundRecipe.value() instanceof RepairItemRecipe) {
+    
+    // Blacklisted types of recipes
+    if (isBlackListedRecipe(foundRecipe.value())) {
       return null;
-    } else if (foundRecipe.value() instanceof MapCloningRecipe) {
-      return null;
+    }
+    // Special types of recipes
+    if (isSpecialRecipe(foundRecipe.value())){
+      NonNullList<Ingredient> ingredients = getIngredientsListFromCraftingSlots();
+      recipeToReturn.setIngredients(ingredients);
     }
     
     return recipeToReturn;
   }
-
+  
+  private boolean isBlackListedRecipe(CraftingRecipe value) {
+    for (var entry : BLACKLISTED_RECIPES) {
+      if (entry.isInstance(value)) return true;
+    }
+    return false;
+  }
+  
+  private boolean isSpecialRecipe(CraftingRecipe value) {
+    for (var entry : SPECIAL_RECIPES) {
+      if (entry.isInstance(value)) return true;
+    }
+    return false;
+  }
+  
+  private NonNullList<Ingredient> getIngredientsListFromCraftingSlots() {
+    return NonNullList.copyOf(
+        this.craftingSlots.getStacksCopy(1).stream()
+            .map(itemStack -> itemStack.copyWithCount(1))
+            .map(Ingredient::of)
+            .toList());
+  }
+  
   private CraftingInput getCraftingInputFromActualInput(List<ItemStack> items) {
     // Get a copy of the input slots' stacks
     var inputSlotStacks = this.inputSlots.getStacksCopy();
