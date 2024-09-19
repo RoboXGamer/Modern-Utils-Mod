@@ -9,6 +9,5 @@
   "tooltip.tutorialmod.data": "Speed: %s",
   "gui.tutorialmod.mechanical_crafter_screen": "Mechanical Crafter",
   "gui.tutorialmod.mechanical_crafter_screen.button_text": "Click Me!",
-  "tutorialmod.jei_plugin": "Tutorial Mod JEI Plugin",
-  "gui.tutorialmod.mechanical_crafter_screen.redstone_mode_button_text": "Toggle Redstone Mode"
+  "tutorialmod.jei_plugin": "Tutorial Mod JEI Plugin"
 }

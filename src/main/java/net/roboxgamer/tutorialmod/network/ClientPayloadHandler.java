@@ -1,7 +1,6 @@
 package net.roboxgamer.tutorialmod.network;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.tutorialmod.TutorialMod;
@@ -29,10 +28,5 @@ public class ClientPayloadHandler {
     //TutorialMod.LOGGER.debug("Client received itemStack: {}", itemStack);
     BlockPos blockPos = payload.blockPos();
     //TutorialMod.LOGGER.debug("Client received blockPos: {}", blockPos);
-  }
-  
-  public static void handleData(RedstoneModePayload payload, final IPayloadContext context) {
-    var mode = payload.mode();
-    //TutorialMod.LOGGER.debug("Client received redstoneMode: {}", mode);
   }
 }
