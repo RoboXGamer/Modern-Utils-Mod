@@ -6,6 +6,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 
+import static net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity.REDSTONE_MODE_MAP;
+
 public class ServerPayloadHandler {
   public static void handleData(RemainItemTogglePayload payload, final IPayloadContext context) {
     var remainItemToggleValue = payload.remainItemToggleValue();
@@ -38,6 +40,16 @@ public class ServerPayloadHandler {
     var blockEntity = context.player().level().getBlockEntity(blockPos);
     if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
       be.getCraftingSlotsItemHandler().setStackInSlot(slotIndex, itemStack);
+    }
+  }
+  
+  public static void handleData(RedstoneModePayload payload, final IPayloadContext context) {
+    var mode = payload.mode();
+    var blockPos = payload.blockPos();
+    TutorialMod.LOGGER.debug("Server received redstoneMode: {}", mode);
+    var blockEntity = context.player().level().getBlockEntity(blockPos);
+    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+      be.setRedstoneMode(REDSTONE_MODE_MAP.get(mode));
     }
   }
 }

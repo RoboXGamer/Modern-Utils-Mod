@@ -29,4 +29,9 @@ public class ClientPayloadHandler {
     BlockPos blockPos = payload.blockPos();
     //TutorialMod.LOGGER.debug("Client received blockPos: {}", blockPos);
   }
+  
+  public static void handleData(RedstoneModePayload payload, final IPayloadContext context) {
+    int mode = payload.mode();
+    //TutorialMod.LOGGER.debug("Client received redstoneMode: {}", mode);
+  }
 }

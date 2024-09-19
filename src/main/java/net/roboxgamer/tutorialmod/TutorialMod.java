@@ -136,6 +136,13 @@ public class TutorialMod {
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData));
+      registrar.playBidirectional(
+          RedstoneModePayload.TYPE,
+          RedstoneModePayload.STREAM_CODEC,
+          new DirectionalPayloadHandler<>(
+              ClientPayloadHandler::handleData,
+              ServerPayloadHandler::handleData));
     }
+    
   }
 }

@@ -70,9 +70,37 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public static final int[] CRAFT_RECIPE_SLOTS = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
-
-  public int getRemainItemToggleValue() {
-    return this.remainItemToggleValue;
+  
+  public enum RedstoneMode {
+    ALWAYS_ON,
+    REDSTONE_ON,
+    REDSTONE_OFF
+  }
+  // I want a map to map int to redstone mode
+  public static final Map<Integer, RedstoneMode> REDSTONE_MODE_MAP = Map.of(
+      0, RedstoneMode.ALWAYS_ON,
+      1, RedstoneMode.REDSTONE_ON,
+      2, RedstoneMode.REDSTONE_OFF
+  );
+  
+  private RedstoneMode redstoneMode = RedstoneMode.ALWAYS_ON;
+  
+  public RedstoneMode getRedstoneMode() {
+    return this.redstoneMode;
+  }
+  
+  public void setRedstoneMode(RedstoneMode mode) {
+    this.redstoneMode = mode;
+    TutorialMod.LOGGER.debug("RedstoneMode: {}", this.redstoneMode);
+    this.setChanged();
+  }
+  
+  public RedstoneMode getNextRedstoneMode() {
+    return RedstoneMode.values()[(this.redstoneMode.ordinal() + 1) % RedstoneMode.values().length];
+  }
+  
+  public String getRemainItemToggleDisplayValue() {
+    return this.remainItemToggleValue == 0 ? "Input" : "Output";
   }
 
   public void setRemainItemToggleValue(int value) {
@@ -335,6 +363,22 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
         this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
       }
+    }
+    
+    // Redstone control logic
+    boolean powered = level.hasNeighborSignal(this.getBlockPos());
+    
+    switch (this.redstoneMode) {
+      case ALWAYS_ON:
+        break; // No additional check, always allows crafting
+      
+      case REDSTONE_ON:
+        if (!powered) return; // Only craft if receiving redstone power
+        break;
+      
+      case REDSTONE_OFF:
+        if (powered) return; // Stop crafting if receiving redstone power
+        break;
     }
 
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
@@ -819,7 +863,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
     // Handle remaining items
     remainingCount = 0;
-    var toPlaceIn = this.remainItemToggleValue == 1 ? this.inputSlots : this.outputSlots;
+    var toPlaceIn = this.remainItemToggleValue == 0 ? this.inputSlots : this.outputSlots;
     // TutorialMod.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ?
     // "Input" : "Output" );
     for (ItemStack remainingItem : this.remainingItems) {
