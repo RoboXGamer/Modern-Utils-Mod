@@ -8,7 +8,7 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
 public class CustomRecipeExtender<T extends CraftingRecipe> implements CraftingRecipe {
-  private final T baseRecipe;
+  public final T baseRecipe;
   private NonNullList<Ingredient> ingredients = NonNullList.create();
   
   public CustomRecipeExtender(T baseRecipe) {

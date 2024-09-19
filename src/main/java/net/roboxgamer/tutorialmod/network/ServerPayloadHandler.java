@@ -1,5 +1,7 @@
 package net.roboxgamer.tutorialmod.network;
 
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
@@ -21,7 +23,10 @@ public class ServerPayloadHandler {
     //TutorialMod.LOGGER.debug("Server received itemStack: {}", itemStack);
     var be = context.player().level().getBlockEntity(blockPos);
     if (be instanceof MechanicalCrafterBlockEntity mcbe) {
-      mcbe.getCraftingSlotsItemHandler().setStackInSlot(0, itemStack);
+      ItemStack renderStack = mcbe.getRenderStack();
+      if (renderStack.isEmpty()) {
+        PacketDistributor.sendToAllPlayers(new ItemStackPayload(itemStack, blockPos));
+      }
     }
   }
   

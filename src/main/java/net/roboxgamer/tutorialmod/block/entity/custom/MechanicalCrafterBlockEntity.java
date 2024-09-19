@@ -168,11 +168,13 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (!(blockEntity instanceof MechanicalCrafterBlockEntity be))
         return;
       be.recipe = be.getRecipe(slevel);
-      if (be.recipe == null || be.result == null) {
-        be.result = ItemStack.EMPTY;
+      if (be.recipe == null) {
+        be.result = null;
       }
-      PacketDistributor.sendToAllPlayers(new ItemStackPayload(be.result, be.getBlockPos()));
-      be.craftingSlots.setStackInSlot(MechanicalCrafterBlockEntity.RESULT_SLOT, be.result);
+      if (be.result != null) {
+        PacketDistributor.sendToAllPlayers(new ItemStackPayload(be.result, be.getBlockPos()));
+        be.craftingSlots.setStackInSlot(MechanicalCrafterBlockEntity.RESULT_SLOT, be.result);
+      }
     }
   }
 
@@ -326,11 +328,13 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
     if (this.tc == 20) {
       this.recipe = getRecipe(slevel);
-      if (this.recipe == null || this.result == null) {
-        this.result = ItemStack.EMPTY;
+      if (this.recipe == null) {
+        this.result = null;
       }
-      PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
-      this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
+      if (this.result != null) {
+        PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
+        this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
+      }
     }
 
     BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
@@ -868,21 +872,41 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
     if (this.result != null && !this.result.isEmpty())
       tutorialModData.put("result", this.result.save(registries));
-    if (this.recipe != null)
-      tutorialModData.put("recipe", Recipe.CODEC.encodeStart(NbtOps.INSTANCE,
-          this.recipe).getOrThrow());
+    try {
+      if (this.recipe != null && this.recipe instanceof CustomRecipeExtender<?> t)
+        tutorialModData.put("recipe", Recipe.CODEC.encodeStart(NbtOps.INSTANCE,
+                                                               t.baseRecipe).getOrThrow());
+    }
+    catch (Exception e) {
+      TutorialMod.LOGGER.error("Error saving recipe to NBT: {}", e.getMessage());
+    }
     return tutorialModData;
   }
 
   @Override
   protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.saveAdditional(tag, registries);
-    tag.put(TutorialMod.MODID, getTutorialModData(registries));
+    CompoundTag tutorialmodData = getTutorialModData(registries);
+    tag.put(TutorialMod.MODID, tutorialmodData);
   }
 
   @Override
   protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.loadAdditional(tag, registries);
+    if (level != null && level.isClientSide()) {
+      this.inputSlots.deserializeNBT(registries, tag.getCompound("inputInv"));
+      this.outputSlots.deserializeNBT(registries, tag.getCompound("outputInv"));
+      this.craftingSlots.deserializeNBT(registries, tag.getCompound("craftingInv"));
+      this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
+      this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
+      if (tag.contains("recipe")) {
+        var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tag.getCompound("recipe")).getOrThrow();
+        if (recipe instanceof CraftingRecipe craftingRecipe){
+          this.recipe = new CustomRecipeExtender<>(craftingRecipe);
+        }
+      }
+      return;
+    }
     CompoundTag tutorialmodData = tag.getCompound(TutorialMod.MODID);
     this.inputSlots.deserializeNBT(registries, tutorialmodData.getCompound("inputInv"));
     this.outputSlots.deserializeNBT(registries, tutorialmodData.getCompound("outputInv"));
@@ -892,7 +916,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (tutorialmodData.contains("recipe")) {
       var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tutorialmodData.getCompound("recipe")).getOrThrow();
       if (recipe instanceof CraftingRecipe craftingRecipe){
-        this.recipe = craftingRecipe;
+        this.recipe = new CustomRecipeExtender<>(craftingRecipe);
       }
     }
   }
