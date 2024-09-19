@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
-
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -42,8 +41,8 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 public class TutorialMod {
   public static final String MODID = "tutorialmod";
   public static final Logger LOGGER = LogUtils.getLogger();
-  
-  public static ResourceLocation location(String path){
+
+  public static ResourceLocation location(String path) {
     return ResourceLocation.fromNamespaceAndPath(MODID, path);
   }
 
@@ -52,13 +51,13 @@ public class TutorialMod {
     modEventBus.addListener(this::commonSetup);
 
     NeoForge.EVENT_BUS.register(this);
-    
+
     ModCreativeModTabs.register(modEventBus);
 
     // Register the items
     ModItems.register(modEventBus);
     ModCustomDataComponents.register(modEventBus);
-    
+
     // Register the blocks
     ModBlocks.register(modEventBus);
 
@@ -79,12 +78,11 @@ public class TutorialMod {
   }
 
   private void addCreative(BuildCreativeModeTabContentsEvent event) {
-//    if (event.getTabKey() == CreativeModeTabs.SEARCH){
-//      ModItems.ITEMS.getEntries().forEach(item -> event.accept(item.get()));
-//    }
+    // if (event.getTabKey() == CreativeModeTabs.SEARCH){
+    // ModItems.ITEMS.getEntries().forEach(item -> event.accept(item.get()));
+    // }
   }
-  
-  
+
   private void registerScreens(RegisterMenuScreensEvent event) {
     event.register(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), MechanicalCrafterScreen::new);
   }
@@ -98,26 +96,24 @@ public class TutorialMod {
     event.registerBlockEntity(
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
-        (be,side) -> be.getCombinedInvWrapper()
-    );
+        (be, side) -> be.getCombinedInvWrapper());
   }
-
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
   public static class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(@NotNull FMLClientSetupEvent event) {
       event.enqueueWork(() -> {
-        Minecraft.getInstance().getWindow().setWindowed(1280,720);
+        Minecraft.getInstance().getWindow().setWindowed(1280, 720);
       });
     }
-    
+
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
       event.registerBlockEntityRenderer(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
-                                        MechanicalCrafterBlockEntityRenderer::new);
+          MechanicalCrafterBlockEntityRenderer::new);
     }
-    
+
     @SubscribeEvent
     public static void register(final RegisterPayloadHandlersEvent event) {
       // Sets the current network version
@@ -127,25 +123,19 @@ public class TutorialMod {
           RemainItemTogglePayload.STREAM_CODEC,
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData
-          )
-      );
+              ServerPayloadHandler::handleData));
       registrar.playBidirectional(
           ItemStackPayload.TYPE,
           ItemStackPayload.STREAM_CODEC,
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData
-          )
-      );
+              ServerPayloadHandler::handleData));
       registrar.playBidirectional(
           GhostSlotTransferPayload.TYPE,
           GhostSlotTransferPayload.STREAM_CODEC,
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData
-          )
-      );
+              ServerPayloadHandler::handleData));
     }
   }
 }
