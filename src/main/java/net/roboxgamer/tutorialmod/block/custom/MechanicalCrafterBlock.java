@@ -37,17 +37,18 @@ public class MechanicalCrafterBlock extends Block implements EntityBlock {
   }
   
   @Override
-  public void onNeighborChange(@NotNull BlockState state, LevelReader level, @NotNull BlockPos pos, @NotNull BlockPos neighbor) {
-    if (!level.isClientSide( ) && level instanceof ServerLevel serverLevel) {
-      boolean flag = state.getValue(POWERED);
-      if (flag != level.hasNeighborSignal(pos)) {
-        serverLevel.setBlock(pos, state.cycle(POWERED), Block.UPDATE_CLIENTS | Block.UPDATE_NEIGHBORS);
-        var be = serverLevel.getBlockEntity(pos);
-        if (be instanceof MechanicalCrafterBlockEntity blockEntity) {
-          blockEntity.setChanged();
-        }
+  protected void neighborChanged(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Block neighborBlock, @NotNull BlockPos neighborPos, boolean movedByPiston) {
+    if (level instanceof ServerLevel serverLevel) {
+      boolean currentPowered = state.getValue(POWERED);
+      boolean isGettingPowered = level.hasNeighborSignal(pos);
+      if (isGettingPowered != currentPowered) {
+        serverLevel.setBlock(pos, state.setValue(POWERED, isGettingPowered), Block.UPDATE_ALL);
+      }
+      if (level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity blockEntity) {
+        blockEntity.setChanged();
       }
     }
+    super.neighborChanged(state, level, pos, neighborBlock, neighborPos, movedByPiston);
   }
   
   @Override

@@ -30,6 +30,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private static final ResourceLocation TEXTURE =
       TutorialMod.location("textures/gui/mechanical_crafter_screen.png");
   
+  private static final ResourceLocation[] REDSTONE_MODE_TEXTURES = {
+      TutorialMod.location("redstone_mode_0"),
+      TutorialMod.location("redstone_mode_1"),
+      TutorialMod.location("redstone_mode_2")
+  };
+  
   private final BlockPos position;
   private final int imageWidth, imageHeight;
   
@@ -92,15 +98,24 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
                             TutorialMod.location("redstone_mode_btn"),
                             TutorialMod.location("redstone_mode_btn_disabled"),
                             TutorialMod.location("redstone_mode_btn_highlighted")
-                        ),this::handleRedstoneModeButtonClick,BUTTON_TEXT)
+                        ),this::handleRedstoneModeButtonClick,BUTTON_TEXT){
+          @Override
+          public void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            var sprites = getRedstoneButtonSprites();
+            var resourcelocation = sprites.get(this.isActive(), this.isHoveredOrFocused());
+            guiGraphics.blitSprite(resourcelocation, this.getX(), this.getY(), this.width, this.height);
+          }
+        }
     );
-    var redstoneModeValue = this.blockEntity.getRedstoneMode();
-    this.redstoneModeButton.setTooltip(
-        Tooltip.create(
-            Component.literal(
-                String.format("Redstone Mode [%s]", REDSTONE_MODE_MAP.get(redstoneModeValue.ordinal()))
-            )
-        )
+    updateRedstoneButtonTooltip();
+  }
+  
+  private WidgetSprites getRedstoneButtonSprites() {
+    int mode = this.blockEntity.getRedstoneMode().ordinal();
+    return new WidgetSprites(
+        REDSTONE_MODE_TEXTURES[mode],
+        REDSTONE_MODE_TEXTURES[mode], // You might want different textures for disabled/highlighted states
+        REDSTONE_MODE_TEXTURES[mode]
     );
   }
   
@@ -109,13 +124,14 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.blockEntity.setRedstoneMode(value);
     TutorialMod.LOGGER.debug("Toggled redstoneModeValue to {}", value);
     PacketDistributor.sendToServer(new RedstoneModePayload(value.ordinal(), this.blockEntity.getBlockPos()));
-    this.redstoneModeButton.setTooltip(
-        Tooltip.create(
-            Component.literal(
-                String.format("Redstone Mode [%s]", REDSTONE_MODE_MAP.get(value.ordinal()))
-            )
-        )
-    );
+    updateRedstoneButtonTooltip();
+  }
+  
+  private void updateRedstoneButtonTooltip() {
+    var redstoneModeValue = this.blockEntity.getRedstoneMode();
+    this.redstoneModeButton.setTooltip(Tooltip.create(Component.literal(
+        String.format("Redstone Mode [%s]", REDSTONE_MODE_MAP.get(redstoneModeValue.ordinal()))
+    )));
   }
   
   private void handleButtonClick(Button button) {

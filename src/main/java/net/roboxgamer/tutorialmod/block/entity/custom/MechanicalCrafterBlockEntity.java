@@ -914,6 +914,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     tutorialModData.put("craftingInv",
         this.craftingSlots.serializeNBT(registries));
     tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
+    tutorialModData.putInt("redstoneMode", this.redstoneMode.ordinal());
     if (this.result != null && !this.result.isEmpty())
       tutorialModData.put("result", this.result.save(registries));
     try {
@@ -942,6 +943,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       this.outputSlots.deserializeNBT(registries, tag.getCompound("outputInv"));
       this.craftingSlots.deserializeNBT(registries, tag.getCompound("craftingInv"));
       this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
+      this.redstoneMode = REDSTONE_MODE_MAP.get(tag.getInt("redstoneMode"));
       this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
       if (tag.contains("recipe")) {
         var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tag.getCompound("recipe")).getOrThrow();
@@ -956,6 +958,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.outputSlots.deserializeNBT(registries, tutorialmodData.getCompound("outputInv"));
     this.craftingSlots.deserializeNBT(registries, tutorialmodData.getCompound("craftingInv"));
     this.remainItemToggleValue = tutorialmodData.getInt("remainItemToggleValue");
+    this.redstoneMode = REDSTONE_MODE_MAP.get(tutorialmodData.getInt("redstoneMode"));
     this.result = ItemStack.parseOptional(registries, tutorialmodData.getCompound("result"));
     if (tutorialmodData.contains("recipe")) {
       var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tutorialmodData.getCompound("recipe")).getOrThrow();
