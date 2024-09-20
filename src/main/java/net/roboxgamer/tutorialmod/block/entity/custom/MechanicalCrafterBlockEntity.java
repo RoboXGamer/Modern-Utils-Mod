@@ -62,8 +62,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private int tc = 0;
   private CraftingRecipe recipe;
   private ItemStack result;
-  private NonNullList<ItemStack> remainingItems;
-
+  
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
   public static final int CRAFT_RESULT_SLOT = 0;
@@ -399,70 +398,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       }
     }
     autoExport();
-
-    // REFERENCE CODE
-    // RecipeManager recipes = slevel.getRecipeManager();
-    // CraftingInput input = CraftingInput.of(1, 1,
-    // List.of(Items.DIAMOND_BLOCK.getDefaultInstance()));
-    // RecipeType<CraftingRecipe> recipeType = RecipeType.CRAFTING;
-    // Optional<RecipeHolder<CraftingRecipe>> optional = recipes.getRecipeFor(
-    // // The recipe type to get the recipe for. In our case, we use the crafting
-    // type.
-    // recipeType,
-    // // Our recipe input.
-    // input,
-    // // Our level context.
-    // slevel
-    // );
-    // optional.map(RecipeHolder::value).ifPresent(recipe -> {
-    // // Do whatever you want here. Note that the recipe is now a
-    // Recipe<CraftingInput> instead of a Recipe<?>.
-    // ItemStack result = recipe.getResultItem(level.registryAccess());
-    // TutorialMod.LOGGER.info("Result: " + result);
-    // });
-    /*
-     * ItemStackHandler inputSlots = be.getInputSlotsItemHandler();
-     * ItemStackHandler outputSlots = be.getOutputSlotsItemHandler();
-     * ItemStack input = inputSlots.getStackInSlot(0);
-     * // Assuming the crafting recipe of oak_logs to oak_planks
-     * boolean toCraft = false;
-     * var slot = -1;
-     * ItemStack result = new ItemStack(Blocks.OAK_PLANKS, 4);
-     * for (int i = 0; i < inputSlots.getSlots(); i++) {
-     * ItemStack stack = inputSlots.getStackInSlot(i);
-     * if (stack.isEmpty()) continue;
-     * if (stack.getItem() != Blocks.OAK_LOG.asItem()) continue;
-     * // Assuming the crafting recipe of oak_logs to oak_planks
-     * toCraft = true;
-     * slot = i;
-     * break;
-     * }
-     * if (!toCraft) return;
-     * for (int i = 0; i < outputSlots.getSlots(); i++) {
-     * ItemStack stack = outputSlots.getStackInSlot(i);
-     * if (stack.isEmpty()) {
-     * outputSlots.setStackInSlot(i, result);
-     * toCraft = false;
-     * break;
-     * }
-     * if (stack.getItem() == result.getItem()) {
-     * if (stack.getCount() < stack.getMaxStackSize()) {
-     * stack.grow(4);
-     * outputSlots.setStackInSlot(i, stack);
-     * toCraft = false;
-     * break;
-     * }
-     * }
-     * }
-     * if (toCraft) return;
-     * // Consume input
-     * var iStack = inputSlots.getStackInSlot(slot);
-     * iStack.shrink(1);
-     * inputSlots.setStackInSlot(slot, iStack);
-     * }
-     * }
-     */
-
   }
   
   private void autoImport() {
@@ -472,7 +407,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (neededItems.isEmpty()) return;
     
     importFromAdjacentInventories(neededItems);
-    optimizeItemPlacement();
   }
   
   private record IngredientNeed(Ingredient ingredient, int slot, int count) {
@@ -488,7 +422,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       
       ItemStack[] matchingStacks = ingredient.getItems();
       if (matchingStacks.length == 0) continue; // Skip if no matching items
-      
       ItemStack requiredStack = matchingStacks[0].copy(); // Use the first matching item as a representative
       int requiredCount = requiredStack.getCount();
       int foundCount = 0;
@@ -568,26 +501,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     
     return false;
-  }
-  
-  private void optimizeItemPlacement() {
-    List<ItemStack> items = new ArrayList<>();
-    for (int i = 0; i < this.inputSlots.getSlots(); i++) {
-      ItemStack stack = this.inputSlots.extractItem(i, 64, false);
-      if (!stack.isEmpty()) {
-        items.add(stack);
-      }
-    }
-    
-    items.sort((a, b) -> {
-      if (a.getItem() == b.getItem()) return 0;
-      return a.getItem().toString().compareTo(b.getItem().toString());
-    });
-    
-    int slotIndex = 0;
-    for (ItemStack stack : items) {
-      this.inputSlots.insertItem(slotIndex++, stack, false);
-    }
   }
   
   private void autoExport() {
@@ -833,7 +746,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // TutorialMod.LOGGER.debug("input: {}", input.items());
 
     // Get the remaining items
-    this.remainingItems = this.recipe.getRemainingItems(input);
+    NonNullList<ItemStack> remainingItems = this.recipe.getRemainingItems(input);
 
     // Now take the items out of the input
     inputCheck(getInputStacks(), ingredients);
@@ -866,7 +779,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     var toPlaceIn = this.remainItemToggleValue == 0 ? this.inputSlots : this.outputSlots;
     // TutorialMod.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ?
     // "Input" : "Output" );
-    for (ItemStack remainingItem : this.remainingItems) {
+    for (ItemStack remainingItem : remainingItems) {
       // TutorialMod.LOGGER.debug("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
       if (remainingItem.isEmpty())
