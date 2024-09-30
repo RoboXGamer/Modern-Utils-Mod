@@ -15,9 +15,11 @@ import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEnti
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.network.RedstoneModePayload;
 import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
+import net.roboxgamer.tutorialmod.util.RedstoneManager;
 import org.jetbrains.annotations.NotNull;
 
-import static net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity.REDSTONE_MODE_MAP;
+import static net.roboxgamer.tutorialmod.util.RedstoneManager.REDSTONE_MODE_MAP;
+
 
 public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalCrafterMenu> {
   private static final String location =
@@ -40,6 +42,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private final int imageWidth, imageHeight;
   
   private MechanicalCrafterBlockEntity blockEntity;
+  private RedstoneManager redstoneManager;
   //private int leftPos, topPos;
   
   //Widgets
@@ -67,6 +70,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     BlockEntity be = level.getBlockEntity(this.position);
     if (be instanceof MechanicalCrafterBlockEntity mcbe) {
       this.blockEntity = mcbe;
+      this.redstoneManager = this.blockEntity.getRedstoneManager();
       
     } else {
       TutorialMod.LOGGER.error("Mechanical Crafter Screen: BlockEntity is not a MechanicalCrafterBlockEntity!");
@@ -111,7 +115,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   }
   
   private WidgetSprites getRedstoneButtonSprites() {
-    int mode = this.blockEntity.getRedstoneMode().ordinal();
+    int mode = this.redstoneManager.getRedstoneMode().ordinal();
     return new WidgetSprites(
         REDSTONE_MODE_TEXTURES[mode],
         REDSTONE_MODE_TEXTURES[mode], // You might want different textures for disabled/highlighted states
@@ -120,15 +124,15 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   }
   
   private void handleRedstoneModeButtonClick(Button button) {
-    var value = this.blockEntity.getNextRedstoneMode();
-    this.blockEntity.setRedstoneMode(value);
+    RedstoneManager.RedstoneMode value = this.redstoneManager.getNextRedstoneMode();
+    this.blockEntity.getRedstoneManager().setRedstoneMode(value);
     TutorialMod.LOGGER.debug("Toggled redstoneModeValue to {}", value);
     PacketDistributor.sendToServer(new RedstoneModePayload(value.ordinal(), this.blockEntity.getBlockPos()));
     updateRedstoneButtonTooltip();
   }
   
   private void updateRedstoneButtonTooltip() {
-    var redstoneModeValue = this.blockEntity.getRedstoneMode();
+    RedstoneManager.RedstoneMode redstoneModeValue = this.redstoneManager.getRedstoneMode();
     this.redstoneModeButton.setTooltip(Tooltip.create(Component.literal(
         String.format("Redstone Mode [%s]", REDSTONE_MODE_MAP.get(redstoneModeValue.ordinal()))
     )));

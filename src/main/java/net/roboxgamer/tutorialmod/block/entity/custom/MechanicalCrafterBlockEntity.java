@@ -32,101 +32,35 @@ import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.network.ItemStackPayload;
+import net.roboxgamer.tutorialmod.util.Constants;
 import net.roboxgamer.tutorialmod.util.CustomRecipeExtender;
+import net.roboxgamer.tutorialmod.util.RedstoneManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static net.roboxgamer.tutorialmod.util.Constants.MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
+import static net.roboxgamer.tutorialmod.util.Constants.MECHANICAL_CRAFTER_SPECIAL_RECIPES;
+import static net.roboxgamer.tutorialmod.util.RedstoneManager.REDSTONE_MODE_MAP;
+
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
-  private static final int RESULT_SLOT = 0;
-  private static final Class<?>[] SPECIAL_RECIPES = new Class<?>[]{
-      TippedArrowRecipe.class,
-      FireworkRocketRecipe.class,
-      FireworkStarRecipe.class,
-      FireworkStarFadeRecipe.class,
-  };
-  private static final Class<?>[] BLACKLISTED_RECIPES = new Class<?>[]{
-      RepairItemRecipe.class,
-      MapCloningRecipe.class,
-      ArmorDyeRecipe.class,
-      BannerDuplicateRecipe.class,
-      BookCloningRecipe.class,
-      DecoratedPotRecipe.class,
-      ShieldDecorationRecipe.class,
-      ShulkerBoxColoring.class, // TODO: Needs more research
-      SuspiciousStewRecipe.class // TODO: Needs more research
-  };
   public Component TITLE = Component.translatable("block.tutorialmod.mechanical_crafter_block");
-  private int tc = 0;
-  private CraftingRecipe recipe;
-  private ItemStack result;
   
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
   public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  private static final int RESULT_SLOT = 0;
+  
+  private int tc = 0;
+  private CraftingRecipe recipe;
+  private ItemStack result;
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
   
-  public enum RedstoneMode {
-    ALWAYS_ON,
-    REDSTONE_ON,
-    REDSTONE_OFF
-  }
-  // I want a map to map int to redstone mode
-  public static final Map<Integer, RedstoneMode> REDSTONE_MODE_MAP = Map.of(
-      0, RedstoneMode.ALWAYS_ON,
-      1, RedstoneMode.REDSTONE_ON,
-      2, RedstoneMode.REDSTONE_OFF
-  );
-  
-  private RedstoneMode redstoneMode = RedstoneMode.ALWAYS_ON;
-  
-  public RedstoneMode getRedstoneMode() {
-    return this.redstoneMode;
-  }
-  
-  public void setRedstoneMode(RedstoneMode mode) {
-    this.redstoneMode = mode;
-    TutorialMod.LOGGER.debug("RedstoneMode: {}", this.redstoneMode);
-    this.setChanged();
-  }
-  
-  public RedstoneMode getNextRedstoneMode() {
-    return RedstoneMode.values()[(this.redstoneMode.ordinal() + 1) % RedstoneMode.values().length];
-  }
-  
-  public String getRemainItemToggleDisplayValue() {
-    return this.remainItemToggleValue == 0 ? "Input" : "Output";
-  }
-
-  public void setRemainItemToggleValue(int value) {
-    this.remainItemToggleValue = value;
-  }
-
-  public int toggleRemainItemValue() {
-    if (this.remainItemToggleValue == 0) {
-      this.remainItemToggleValue = 1;
-    } else {
-      this.remainItemToggleValue = 0;
-    }
-    return this.remainItemToggleValue;
-  }
-
-  public ItemStack getRenderStack() {
-    if (this.result == null)
-      return ItemStack.EMPTY;
-    if (ItemStack.isSameItemSameComponents(this.result, Items.END_CRYSTAL.getDefaultInstance()))
-      return ItemStack.EMPTY;
-    return this.result;
-  }
-
-  public void setRenderStack(ItemStack itemStack) {
-    this.result = itemStack;
-    this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
-  }
+  private final RedstoneManager redstoneManager = new RedstoneManager(this);
 
   public class CustomItemStackHandler extends ItemStackHandler {
     public CustomItemStackHandler(int size) {
@@ -202,6 +136,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         PacketDistributor.sendToAllPlayers(new ItemStackPayload(be.result, be.getBlockPos()));
         be.craftingSlots.setStackInSlot(MechanicalCrafterBlockEntity.RESULT_SLOT, be.result);
       }
+    }
+    
+    NonNullList<Ingredient> getIngredientsList() {
+      return NonNullList.copyOf(
+          this.getStacksCopy(1).stream()
+              .map(itemStack -> itemStack.copyWithCount(1))
+              .map(Ingredient::of)
+              .toList());
     }
   }
 
@@ -307,38 +249,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     super(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(), pos, blockState);
   }
 
-  public CustomItemStackHandler getInputSlotsItemHandler() {
-    return this.inputSlots;
-  }
-
-  public ItemStackHandler getOutputSlotsItemHandler() {
-    return this.outputSlots;
-  }
-
-  public CraftingSlotHandler getCraftingSlotsItemHandler() {
-    return this.craftingSlots;
-  }
-
-  public List<ItemStack> getInputStacks() {
-    return this.inputSlots.getStacks();
-  }
-
-  public SimpleContainer getInputContainer() {
-    var t = new SimpleContainer(inputSlots.getSlots());
-    for (int i = 0; i < inputSlots.getSlots(); i++) {
-      t.setItem(i, inputSlots.getStackInSlot(i));
-    }
-    return t;
-  }
-
-  public SimpleContainer getOutputContainer() {
-    var t = new SimpleContainer(outputSlots.getSlots());
-    for (int i = 0; i < outputSlots.getSlots(); i++) {
-      t.setItem(i, outputSlots.getStackInSlot(i));
-    }
-    return t;
-  }
-
   @Override
   public @NotNull Component getDisplayName() {
     return TITLE;
@@ -367,7 +277,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Redstone control logic
     boolean powered = level.hasNeighborSignal(this.getBlockPos());
     
-    switch (this.redstoneMode) {
+    switch (this.redstoneManager.getRedstoneMode()) {
       case ALWAYS_ON:
         break; // No additional check, always allows crafting
       
@@ -379,14 +289,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         if (powered) return; // Stop crafting if receiving redstone power
         break;
     }
-
-    BlockEntity blockEntity = slevel.getBlockEntity(this.getBlockPos());
-    if (!(blockEntity instanceof MechanicalCrafterBlockEntity))
-      return;
-
     // *** Logic for crafting ***
 
-    if (everySecond(0.5)) {
+    if (everySecond(0.5)) { // Every 10 ticks
       if (canCraft()) {
         // TutorialMod.LOGGER.info("Can Craft!");
         craft();
@@ -541,20 +446,18 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   }
 
   private CraftingRecipe getRecipe(ServerLevel level) {
-    if (this.craftingSlots.isCompletelyEmpty())
-      return null;
+    if (this.craftingSlots.isCompletelyEmpty()) return null;
     RecipeManager recipes = level.getRecipeManager();
-    RecipeType<CraftingRecipe> recipeType = RecipeType.CRAFTING;
     var craftingSlotsStacksCopy = this.craftingSlots.getStacksCopy(1);
     CraftingInput input = CraftingInput.of(3, 3, craftingSlotsStacksCopy);
     this.craftingInputList = input.items();
-    List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(recipeType, input, level);
+    List<RecipeHolder<CraftingRecipe>> list = recipes.getRecipesFor(RecipeType.CRAFTING, input, level);
     if (list.isEmpty()) {
       this.result = null;
       this.craftingSlots.setStackInSlot(0, ItemStack.EMPTY);
       return null;
     }
-    RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst();
+    RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst(); // TODO: Add support for multiple recipes conflicting with the same input
     // TutorialMod.LOGGER.debug("foundRecipe: {}", foundRecipe);
     
     ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
@@ -571,38 +474,28 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     CustomRecipeExtender<?> recipeToReturn = new CustomRecipeExtender<>(foundRecipe.value());
     
     // Blacklisted types of recipes
-    if (isBlackListedRecipe(foundRecipe.value())) {
+    if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.BLACKLISTED)) {
       return null;
     }
     // Special types of recipes
-    if (isSpecialRecipe(foundRecipe.value())){
-      NonNullList<Ingredient> ingredients = getIngredientsListFromCraftingSlots();
+    if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.SPECIAL)){
+      NonNullList<Ingredient> ingredients = this.craftingSlots.getIngredientsList();
       recipeToReturn.setIngredients(ingredients);
     }
     
     return recipeToReturn;
   }
   
-  private boolean isBlackListedRecipe(CraftingRecipe value) {
-    for (var entry : BLACKLISTED_RECIPES) {
+  private boolean isRecipe(CraftingRecipe value, Constants.RecipeTypes type) {
+    Class<?>[] recipes = switch (type) {
+      case BLACKLISTED -> MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
+      case SPECIAL -> MECHANICAL_CRAFTER_SPECIAL_RECIPES;
+    };
+    
+    for (var entry : recipes) {
       if (entry.isInstance(value)) return true;
     }
     return false;
-  }
-  
-  private boolean isSpecialRecipe(CraftingRecipe value) {
-    for (var entry : SPECIAL_RECIPES) {
-      if (entry.isInstance(value)) return true;
-    }
-    return false;
-  }
-  
-  private NonNullList<Ingredient> getIngredientsListFromCraftingSlots() {
-    return NonNullList.copyOf(
-        this.craftingSlots.getStacksCopy(1).stream()
-            .map(itemStack -> itemStack.copyWithCount(1))
-            .map(Ingredient::of)
-            .toList());
   }
   
   private CraftingInput getCraftingInputFromActualInput(List<ItemStack> items) {
@@ -749,7 +642,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     NonNullList<ItemStack> remainingItems = this.recipe.getRemainingItems(input);
 
     // Now take the items out of the input
-    inputCheck(getInputStacks(), ingredients);
+    inputCheck(this.inputSlots.getStacks(), ingredients);
 
     // Put the result in the output
     ItemStack result = this.result.copy();
@@ -777,8 +670,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle remaining items
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 0 ? this.inputSlots : this.outputSlots;
-    // TutorialMod.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ?
-    // "Input" : "Output" );
+    // TutorialMod.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
     for (ItemStack remainingItem : remainingItems) {
       // TutorialMod.LOGGER.debug("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
@@ -805,79 +697,155 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       setChanged();
     }
   }
-
-  private boolean everySecond() {
-    return everySecond(1);
-  }
   
   private boolean everySecond(double seconds){
     return this.tc % (20 * seconds) == 0;
+  }
+  
+  public RedstoneManager getRedstoneManager() {
+    return redstoneManager;
+  }
+  
+  public String getRemainItemToggleDisplayValue() {
+    return this.remainItemToggleValue == 0 ? "Input" : "Output";
+  }
+  
+  public void setRemainItemToggleValue(int value) {
+    this.remainItemToggleValue = value;
+  }
+  
+  public int toggleRemainItemValue() {
+    if (this.remainItemToggleValue == 0) {
+      this.remainItemToggleValue = 1;
+    } else {
+      this.remainItemToggleValue = 0;
+    }
+    return this.remainItemToggleValue;
+  }
+  
+  public ItemStack getRenderStack() {
+    if (this.result == null)
+      return ItemStack.EMPTY;
+    if (ItemStack.isSameItemSameComponents(this.result, Items.END_CRYSTAL.getDefaultInstance()))
+      return ItemStack.EMPTY;
+    return this.result;
+  }
+  
+  public void setRenderStack(ItemStack itemStack) {
+    this.result = itemStack;
+    this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
   }
 
   public @Nullable IItemHandler getCombinedInvWrapper() {
     return this.combinedInvHandler;
   }
-
-  CompoundTag getTutorialModData(HolderLookup.Provider registries) {
-    CompoundTag tutorialModData = new CompoundTag();
-    tutorialModData.put("inputInv",
-        this.inputSlots.serializeNBT(registries));
-    tutorialModData.put("outputInv",
-        this.outputSlots.serializeNBT(registries));
-    tutorialModData.put("craftingInv",
-        this.craftingSlots.serializeNBT(registries));
-    tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
-    tutorialModData.putInt("redstoneMode", this.redstoneMode.ordinal());
-    if (this.result != null && !this.result.isEmpty())
-      tutorialModData.put("result", this.result.save(registries));
-    try {
-      if (this.recipe != null && this.recipe instanceof CustomRecipeExtender<?> t)
-        tutorialModData.put("recipe", Recipe.CODEC.encodeStart(NbtOps.INSTANCE,
-                                                               t.baseRecipe).getOrThrow());
+  
+  public CustomItemStackHandler getInputSlotsItemHandler() {
+    return this.inputSlots;
+  }
+  
+  public ItemStackHandler getOutputSlotsItemHandler() {
+    return this.outputSlots;
+  }
+  
+  public CraftingSlotHandler getCraftingSlotsItemHandler() {
+    return this.craftingSlots;
+  }
+  
+  public SimpleContainer getInputContainer() {
+    var t = new SimpleContainer(inputSlots.getSlots());
+    for (int i = 0; i < inputSlots.getSlots(); i++) {
+      t.setItem(i, inputSlots.getStackInSlot(i));
     }
-    catch (Exception e) {
-      TutorialMod.LOGGER.error("Error saving recipe to NBT: {}", e.getMessage());
+    return t;
+  }
+  
+  public SimpleContainer getOutputContainer() {
+    var t = new SimpleContainer(outputSlots.getSlots());
+    for (int i = 0; i < outputSlots.getSlots(); i++) {
+      t.setItem(i, outputSlots.getStackInSlot(i));
     }
-    return tutorialModData;
+    return t;
   }
 
+  // Saving and loading
+  CompoundTag getTutorialModData(HolderLookup.Provider registries) {
+    CompoundTag tutorialModData = new CompoundTag();
+    
+    // Serialize input, output, and crafting slots
+    tutorialModData.put("inputInv", this.inputSlots.serializeNBT(registries));
+    tutorialModData.put("outputInv", this.outputSlots.serializeNBT(registries));
+    tutorialModData.put("craftingInv", this.craftingSlots.serializeNBT(registries));
+    
+    // Store additional state variables
+    tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
+    tutorialModData.putInt("redstoneMode", this.redstoneManager.getRedstoneMode().ordinal());
+    
+    // Save the result if it exists
+    if (this.result != null && !this.result.isEmpty()) {
+      tutorialModData.put("result", this.result.save(registries));
+    }
+    
+    // Attempt to save the recipe, if available
+    saveRecipeToNBT(tutorialModData, registries);
+    
+    return tutorialModData;
+  }
+  
+  private void saveRecipeToNBT(CompoundTag tutorialModData, HolderLookup.Provider registries) {
+    try {
+      if (this.recipe instanceof CustomRecipeExtender<?> t) {
+        tutorialModData.put("recipe", Recipe.CODEC.encodeStart(NbtOps.INSTANCE, t.baseRecipe).getOrThrow());
+      }
+    } catch (Exception e) {
+      TutorialMod.LOGGER.error("Error saving recipe to NBT: {}", e.getMessage());
+    }
+  }
+  
   @Override
   protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.saveAdditional(tag, registries);
-    CompoundTag tutorialmodData = getTutorialModData(registries);
-    tag.put(TutorialMod.MODID, tutorialmodData);
+    CompoundTag tutorialModData = getTutorialModData(registries);
+    tag.put(TutorialMod.MODID, tutorialModData);
   }
 
   @Override
   protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.loadAdditional(tag, registries);
+    
+    // Check if we are on the client side
     if (level != null && level.isClientSide()) {
-      this.inputSlots.deserializeNBT(registries, tag.getCompound("inputInv"));
-      this.outputSlots.deserializeNBT(registries, tag.getCompound("outputInv"));
-      this.craftingSlots.deserializeNBT(registries, tag.getCompound("craftingInv"));
-      this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
-      this.redstoneMode = REDSTONE_MODE_MAP.get(tag.getInt("redstoneMode"));
-      this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
-      if (tag.contains("recipe")) {
-        var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tag.getCompound("recipe")).getOrThrow();
-        if (recipe instanceof CraftingRecipe craftingRecipe){
-          this.recipe = new CustomRecipeExtender<>(craftingRecipe);
-        }
-      }
-      return;
+      // Deserialize data from the tag for client-side
+      deserializeFromTag(tag, registries);
+    } else {
+      CompoundTag tutorialModData = tag.getCompound(TutorialMod.MODID);
+      deserializeFromTag(tutorialModData, registries);
     }
-    CompoundTag tutorialmodData = tag.getCompound(TutorialMod.MODID);
-    this.inputSlots.deserializeNBT(registries, tutorialmodData.getCompound("inputInv"));
-    this.outputSlots.deserializeNBT(registries, tutorialmodData.getCompound("outputInv"));
-    this.craftingSlots.deserializeNBT(registries, tutorialmodData.getCompound("craftingInv"));
-    this.remainItemToggleValue = tutorialmodData.getInt("remainItemToggleValue");
-    this.redstoneMode = REDSTONE_MODE_MAP.get(tutorialmodData.getInt("redstoneMode"));
-    this.result = ItemStack.parseOptional(registries, tutorialmodData.getCompound("result"));
-    if (tutorialmodData.contains("recipe")) {
-      var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, tutorialmodData.getCompound("recipe")).getOrThrow();
-      if (recipe instanceof CraftingRecipe craftingRecipe){
-        this.recipe = new CustomRecipeExtender<>(craftingRecipe);
-      }
+  }
+  
+  private void deserializeFromTag(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
+    // Deserialize input, output, and crafting slots
+    this.inputSlots.deserializeNBT(registries, tag.getCompound("inputInv"));
+    this.outputSlots.deserializeNBT(registries, tag.getCompound("outputInv"));
+    this.craftingSlots.deserializeNBT(registries, tag.getCompound("craftingInv"));
+    
+    // Load additional state variables
+    this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
+    this.redstoneManager.setRedstoneMode(
+        REDSTONE_MODE_MAP.get(tag.getInt("redstoneMode"))
+    );
+    this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
+    
+    // Load the recipe if it exists
+    if (tag.contains("recipe")) {
+      loadRecipeFromNBT(tag.getCompound("recipe"));
+    }
+  }
+  
+  private void loadRecipeFromNBT(CompoundTag recipeTag) {
+    var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, recipeTag).getOrThrow();
+    if (recipe instanceof CraftingRecipe craftingRecipe) {
+      this.recipe = new CustomRecipeExtender<>(craftingRecipe);
     }
   }
 
@@ -890,7 +858,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public @Nullable Packet<ClientGamePacketListener> getUpdatePacket() {
     return ClientboundBlockEntityDataPacket.create(this);
   }
-
+  
+  // Menu
   @Override
   public @Nullable AbstractContainerMenu createMenu(int containerId, @NotNull Inventory playerInventory,
       @NotNull Player player) {
