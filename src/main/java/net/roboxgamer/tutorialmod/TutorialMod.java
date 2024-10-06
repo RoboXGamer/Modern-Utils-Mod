@@ -96,7 +96,7 @@ public class TutorialMod {
     event.registerBlockEntity(
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
-        (be, side) -> be.getCombinedInvWrapper());
+        (be, side) -> be.getCapabilityHandler(side));
   }
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

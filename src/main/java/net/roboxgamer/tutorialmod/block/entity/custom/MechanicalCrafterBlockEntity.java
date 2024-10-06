@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.roboxgamer.tutorialmod.util.Constants.MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
 import static net.roboxgamer.tutorialmod.util.Constants.MECHANICAL_CRAFTER_SPECIAL_RECIPES;
@@ -59,6 +60,31 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private ItemStack result;
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
+  
+  private Boolean autoImportEnabled = true;
+  private Boolean autoExportEnabled = true;
+  
+  private final Map<Direction, Boolean> importDirections = new HashMap<>(
+      Map.of(
+          Direction.NORTH, true,
+          Direction.SOUTH, true,
+          Direction.EAST, true,
+          Direction.WEST, true,
+          Direction.UP, true,
+          Direction.DOWN, true
+      )
+  );
+  
+  private final Map<Direction, Boolean> exportDirections = new HashMap<>(
+      Map.of(
+          Direction.NORTH, false,
+          Direction.SOUTH, true,
+          Direction.EAST, false,
+          Direction.WEST, false,
+          Direction.UP, false,
+          Direction.DOWN, false
+      )
+  );
   
   private final RedstoneManager redstoneManager = new RedstoneManager(this);
 
@@ -296,13 +322,17 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         // TutorialMod.LOGGER.info("Can Craft!");
         craft();
       } else {
-        autoImport();
-        if (canCraft()){
-          craft();
-        }
+        if (autoImportEnabled) {
+          autoImport();
+          if (canCraft()){
+            craft();
+          }
+        };
       }
     }
-    autoExport();
+    if (autoExportEnabled) {
+      autoExport(slevel);
+    };
   }
   
   private void autoImport() {
@@ -311,7 +341,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     List<IngredientNeed> neededItems = calculateNeededItems();
     if (neededItems.isEmpty()) return;
     
-    importFromAdjacentInventories(neededItems);
+    getValidDirectionsStream(Direction.values(), this.importDirections).forEach(direction -> importFromAdjacentInventories(neededItems, direction));
+  }
+  
+  private @NotNull Stream<Direction> getValidDirectionsStream(Direction[] directions, Map<Direction, Boolean> map) {
+    //  Filter out directions that are false in the import directions map
+    return Arrays.stream(directions).filter(map::get);
   }
   
   private record IngredientNeed(Ingredient ingredient, int slot, int count) {
@@ -348,18 +383,17 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return neededItems;
   }
   
-  private void importFromAdjacentInventories(List<IngredientNeed> neededItems) {
-    for (Direction direction : Direction.values()) {
+  private void importFromAdjacentInventories(List<IngredientNeed> neededItems, Direction direction) {
       if (neededItems.isEmpty()) return;
       
       BlockPos pos = this.getBlockPos().relative(direction);
       if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel))
         return;
       BlockEntity blockEntity = this.level.getBlockEntity(pos);
-      if (blockEntity == null) continue;
+      if (blockEntity == null) return;
       
       IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
-      if (cap == null) continue;
+      if (cap == null) return;
       
       Iterator<IngredientNeed> iterator = neededItems.iterator();
       while (iterator.hasNext()) {
@@ -381,7 +415,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
           iterator.remove(); // Remove this need from the list
         }
       }
-    }
   }
   
   private boolean putInInputSlots(ItemStackHandler inputSlots, ItemStack stack) {
@@ -408,16 +441,15 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return false;
   }
   
-  private void autoExport() {
+  private void autoExport(ServerLevel level) {
   //  Get output slots
-    if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel))
-      return;
     CustomItemStackHandler outputSlots = this.outputSlots;
     if (outputSlots.isCompletelyEmpty())
       return;
-    for (Direction direction : Direction.values()) {
+    var exportValidDirections = getValidDirectionsStream(Direction.values(), this.exportDirections).toList();
+    for (Direction direction : exportValidDirections) {
       BlockPos pos = this.getBlockPos().relative(direction);
-      BlockState state = this.level.getBlockState(pos);
+      BlockState state = level.getBlockState(pos);
       if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock) {
         if (level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity) return;
         // Get the item handler from the block entity
@@ -738,6 +770,56 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
   public @Nullable IItemHandler getCombinedInvWrapper() {
     return this.combinedInvHandler;
+  }
+  
+  public IItemHandler getCapabilityHandler(Direction side) {
+    if (side == null) {
+      return this.combinedInvHandler;
+    }
+    
+    boolean canImport = importDirections.getOrDefault(side, false);
+    boolean canExport = exportDirections.getOrDefault(side, false);
+    
+    return new IItemHandler() {
+      @Override
+      public int getSlots() {
+        return combinedInvHandler.getSlots();
+      }
+      
+      @Override
+      public @NotNull ItemStack getStackInSlot(int slot) {
+        return combinedInvHandler.getStackInSlot(slot);
+      }
+      
+      @Override
+      public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+        if (!canImport || slot >= inputSlots.getSlots()) {
+          return stack;
+        }
+        return combinedInvHandler.insertItem(slot, stack, simulate);
+      }
+      
+      @Override
+      public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+        if (!canExport || slot < inputSlots.getSlots()) {
+          return ItemStack.EMPTY;
+        }
+        return combinedInvHandler.extractItem(slot, amount, simulate);
+      }
+      
+      @Override
+      public int getSlotLimit(int slot) {
+        return combinedInvHandler.getSlotLimit(slot);
+      }
+      
+      @Override
+      public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+        if (!canImport || slot >= inputSlots.getSlots()) {
+          return false;
+        }
+        return combinedInvHandler.isItemValid(slot, stack);
+      }
+    };
   }
   
   public CustomItemStackHandler getInputSlotsItemHandler() {
