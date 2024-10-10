@@ -77,12 +77,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private final Map<Direction, Boolean> exportDirections = new HashMap<>(
       Map.of(
-          Direction.NORTH, false,
+          Direction.NORTH, true,
           Direction.SOUTH, true,
-          Direction.EAST, false,
-          Direction.WEST, false,
-          Direction.UP, false,
-          Direction.DOWN, false
+          Direction.EAST, true,
+          Direction.WEST, true,
+          Direction.UP, true,
+          Direction.DOWN, true
       )
   );
   
