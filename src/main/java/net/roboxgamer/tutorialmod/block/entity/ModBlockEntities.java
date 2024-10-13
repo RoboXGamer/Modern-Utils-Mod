@@ -10,6 +10,7 @@ import net.roboxgamer.tutorialmod.block.ModBlocks;
 import net.roboxgamer.tutorialmod.block.entity.custom.ExampleInventoryBlockEntity;
 import net.roboxgamer.tutorialmod.block.entity.custom.MagicBlockBlockEntity;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.tutorialmod.block.entity.custom.renderer.MiniChestBlockEntity;
 
 import java.util.function.Supplier;
 
@@ -34,8 +35,14 @@ public class ModBlockEntities {
           of(ExampleInventoryBlockEntity::new,
              ModBlocks.EXAMPLE_INVENTORY_BLOCK.get())
           .build(null));
-
-
+  
+  public static final Supplier<BlockEntityType<MiniChestBlockEntity>> MINI_CHEST_BLOCK_ENTITY =
+      BLOCK_ENTITIES.register("mini_chest_block_entity", () -> BlockEntityType.Builder.
+          of(MiniChestBlockEntity::new,
+             ModBlocks.MINI_CHEST_BLOCK.get())
+          .build(null));
+  
+  
   public static void register(IEventBus eventBus) {
     BLOCK_ENTITIES.register(eventBus);
   }

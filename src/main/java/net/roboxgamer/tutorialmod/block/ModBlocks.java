@@ -13,6 +13,7 @@ import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.custom.ExampleInventoryBlock;
 import net.roboxgamer.tutorialmod.block.custom.MagicBlock;
 import net.roboxgamer.tutorialmod.block.custom.MechanicalCrafterBlock;
+import net.roboxgamer.tutorialmod.block.custom.MiniChestBlock;
 import net.roboxgamer.tutorialmod.item.ModItems;
 
 import java.util.function.Supplier;
@@ -33,6 +34,9 @@ public class ModBlocks {
 
   public static final DeferredBlock<ExampleInventoryBlock> EXAMPLE_INVENTORY_BLOCK = registerBlock("example_inventory_block", ()->
       new ExampleInventoryBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
+  
+  public static final DeferredBlock<MiniChestBlock> MINI_CHEST_BLOCK = registerBlock("mini_chest_block", ()->
+      new MiniChestBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
 
   private static <T extends Block> DeferredBlock<T> registerBlock(String name, Supplier<T> block) {
     DeferredBlock<T> toReturn = BLOCKS.register(name, block);

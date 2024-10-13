@@ -18,6 +18,7 @@ public class ModBlockStateProvider extends BlockStateProvider {
     blockWithItem(ModBlocks.EXAMPLE_BLOCK);
     blockWithItem(ModBlocks.MAGIC_BLOCK);
     blockWithItem(ModBlocks.EXAMPLE_INVENTORY_BLOCK);
+    blockWithItem(ModBlocks.MINI_CHEST_BLOCK);
     
     blockWithItemWithModel(
         ModBlocks.MECHANICAL_CRAFTER_BLOCK,

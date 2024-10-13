@@ -13,6 +13,7 @@ import net.roboxgamer.tutorialmod.block.ModBlocks;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.block.entity.custom.renderer.MechanicalCrafterBlockEntityRenderer;
 import net.roboxgamer.tutorialmod.client.screen.MechanicalCrafterScreen;
+import net.roboxgamer.tutorialmod.client.screen.MiniChestScreen;
 import net.roboxgamer.tutorialmod.item.ModCreativeModTabs;
 import net.roboxgamer.tutorialmod.item.ModCustomDataComponents;
 import net.roboxgamer.tutorialmod.item.ModItems;
@@ -85,6 +86,7 @@ public class TutorialMod {
 
   private void registerScreens(RegisterMenuScreensEvent event) {
     event.register(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), MechanicalCrafterScreen::new);
+    event.register(ModMenuTypes.MINI_CHEST_MENU.get(), MiniChestScreen::new);
   }
 
   @SubscribeEvent
@@ -97,6 +99,10 @@ public class TutorialMod {
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
         (be, side) -> be.getCapabilityHandler(side));
+    event.registerBlockEntity(
+        Capabilities.ItemHandler.BLOCK,
+        ModBlockEntities.MINI_CHEST_BLOCK_ENTITY.get(),
+        (be, side) -> be.getInv());
   }
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

@@ -13,8 +13,13 @@ public class ModMenuTypes {
   public static final DeferredRegister<MenuType<?>> MENUS =
       DeferredRegister.create(BuiltInRegistries.MENU, TutorialMod.MODID);
   
-  public static final Supplier<MenuType<MechanicalCrafterMenu>> MECHANICAL_CRAFTER_MENU = MENUS.register("mechanical_crafter_menu", () -> IMenuTypeExtension.create(MechanicalCrafterMenu::new));
+  public static final Supplier<MenuType<MechanicalCrafterMenu>> MECHANICAL_CRAFTER_MENU = MENUS.register(
+      "mechanical_crafter_menu", () -> IMenuTypeExtension.create(MechanicalCrafterMenu::new)
+  );
   
+  public static final Supplier<MenuType<MiniChestMenu>> MINI_CHEST_MENU = MENUS.register(
+      "mini_chest_menu", () -> IMenuTypeExtension.create(MiniChestMenu::new)
+  );
   
   
   public static void register(IEventBus eventBus) {
