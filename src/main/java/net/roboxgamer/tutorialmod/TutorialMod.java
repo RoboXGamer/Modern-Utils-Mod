@@ -148,6 +148,14 @@ public class TutorialMod {
           new DirectionalPayloadHandler<>(
               ClientPayloadHandler::handleData,
               ServerPayloadHandler::handleData));
+      registrar.playBidirectional(
+          SlotStatePayload.TYPE,
+          SlotStatePayload.STREAM_CODEC,
+          new DirectionalPayloadHandler<>(
+              ClientPayloadHandler::handleData,
+              ServerPayloadHandler::handleData
+          )
+      );
     }
     
   }

@@ -1,12 +1,10 @@
 package net.roboxgamer.tutorialmod.menu;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.ContainerLevelAccess;
-import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -23,18 +21,19 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   
   private final MechanicalCrafterBlockEntity blockEntity;
   private final ContainerLevelAccess levelAccess;
+  private final ContainerData containerData;
   
+  public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity){
+    this(containerId, playerInv, blockEntity, new SimpleContainerData(9));
+  }
   //Server Constructor
-  public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, BlockEntity blockEntity) {
+  public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity, ContainerData data) {
     super(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), containerId);
-    if (blockEntity instanceof MechanicalCrafterBlockEntity mechanicalCrafterBlockEntity) {
-      this.blockEntity = mechanicalCrafterBlockEntity;
-    } else {
-      throw new IllegalArgumentException("BlockEntity is not a MechanicalCrafterBlockEntity");
-    }
-    
+    this.blockEntity = blockEntity;
     this.levelAccess = ContainerLevelAccess.create(Objects.requireNonNull(blockEntity.getLevel()),
                                                    blockEntity.getBlockPos());
+    this.containerData = data;
+    this.addDataSlots(data);
     createBlockEntityInventory(this.blockEntity);
     
     createPlayerHotbar(playerInv);
@@ -90,13 +89,18 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     }
     // add output slots
     for (int col = 0; col < OUTPUT_SLOTS_COUNT; col++) {
-      this.addSlot(new SlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart));
+      this.addSlot(new OutputSlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart,this));
     }
+  }
+  
+  public boolean isSlotDisabled(int slot) {
+    return slot > -1 && slot < 9 && this.containerData.get(slot) == 1;
   }
   
   //Client Constructor
   public MechanicalCrafterMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf extraData) {
-    this(containerId, playerInv, playerInv.player.level().getBlockEntity(extraData.readBlockPos()));
+    this(containerId, playerInv,
+         (MechanicalCrafterBlockEntity) playerInv.player.level().getBlockEntity(extraData.readBlockPos()));
   }
   
   @Override
@@ -188,5 +192,12 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     
     // Call super to handle other slots normally
     super.clicked(slotId, button, clickType, player);
+  }
+  
+  public void setSlotState(int slot, boolean enabled) {
+    OutputSlotItemHandler outputSlot = (OutputSlotItemHandler)this.getSlot(slot);
+    this.containerData.set(outputSlot.getSlotIndex(), enabled ? 0 : 1);
+    this.blockEntity.setSlotState(outputSlot.getSlotIndex(), enabled ? 0 : 1);
+    this.broadcastChanges();
   }
 }

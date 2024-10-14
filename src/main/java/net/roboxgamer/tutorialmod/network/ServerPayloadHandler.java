@@ -52,4 +52,15 @@ public class ServerPayloadHandler {
       be.getRedstoneManager().setRedstoneMode(REDSTONE_MODE_MAP.get(mode));
     }
   }
+  
+  public static void handleData(SlotStatePayload payload,final IPayloadContext context){
+    var state = payload.slotState();
+    var slotIndex = payload.slotIndex();
+    var blockPos = payload.blockPos();
+    TutorialMod.LOGGER.debug("Server received slotState: {}", state);
+    var blockEntity = context.player().level().getBlockEntity(blockPos);
+    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+      be.setSlotState(slotIndex, state ? 0 : 1);
+    }
+  }
 }

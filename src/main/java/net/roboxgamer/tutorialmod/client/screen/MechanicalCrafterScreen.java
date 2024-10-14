@@ -6,15 +6,23 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.CrafterSlot;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
+import net.roboxgamer.tutorialmod.menu.OutputSlotItemHandler;
 import net.roboxgamer.tutorialmod.network.RedstoneModePayload;
 import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
+import net.roboxgamer.tutorialmod.network.SlotStatePayload;
 import net.roboxgamer.tutorialmod.util.RedstoneManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,9 +45,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       TutorialMod.location("redstone_mode_1"),
       TutorialMod.location("redstone_mode_2")
   };
+  private static final ResourceLocation DISABLED_SLOT_LOCATION_SPRITE = ResourceLocation.withDefaultNamespace("container/crafter/disabled_slot");
+  private static final Component DISABLED_SLOT_TOOLTIP = Component.translatable("gui.togglable_slot");
   
   private final BlockPos position;
   private final int imageWidth, imageHeight;
+  private final Player player;
   
   private MechanicalCrafterBlockEntity blockEntity;
   private RedstoneManager redstoneManager;
@@ -56,6 +67,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.imageWidth = 176;
     this.imageHeight = 236;
     this.inventoryLabelY = this.imageHeight - 92;
+    this.player = playerInv.player;
   }
   
   @Override
@@ -181,5 +193,64 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
 
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
     this.renderTooltip(guiGraphics, mouseX, mouseY);
+    
+    if (this.hoveredSlot instanceof OutputSlotItemHandler
+        && !this.menu.isSlotDisabled(this.hoveredSlot.getSlotIndex())
+        && this.menu.getCarried().isEmpty()
+        && !this.hoveredSlot.hasItem()
+        && !this.player.isSpectator()) {
+      guiGraphics.renderTooltip(this.font, DISABLED_SLOT_TOOLTIP, mouseX, mouseY);
+    }
+  }
+  
+  @Override
+  public void renderSlot(@NotNull GuiGraphics guiGraphics, @NotNull Slot slot) {
+    if (slot instanceof OutputSlotItemHandler outputSlot && this.menu.isSlotDisabled(slot.getSlotIndex())) {
+      this.renderDisabledSlot(guiGraphics, outputSlot);
+      return;
+    }
+    
+    super.renderSlot(guiGraphics, slot);
+  }
+  
+  private void renderDisabledSlot(GuiGraphics guiGraphics, OutputSlotItemHandler slot) {
+    guiGraphics.blitSprite(DISABLED_SLOT_LOCATION_SPRITE, slot.x - 1, slot.y - 1, 18, 18);
+  }
+  
+  @Override
+  protected void slotClicked(@NotNull Slot slot, int slotId, int mouseButton, @NotNull ClickType type) {
+    if (slot instanceof OutputSlotItemHandler && !slot.hasItem() && !this.player.isSpectator()) {
+      switch (type) {
+        case PICKUP:
+          if (this.menu.isSlotDisabled(slot.getSlotIndex())) {
+            this.enableSlot(slotId);
+          } else if (this.menu.getCarried().isEmpty()) {
+            this.disableSlot(slotId);
+          }
+          break;
+        case SWAP:
+          ItemStack itemstack = this.player.getInventory().getItem(mouseButton);
+          if (this.menu.isSlotDisabled(slot.getSlotIndex()) && !itemstack.isEmpty()) {
+            this.enableSlot(slotId);
+          }
+      }
+    }
+    super.slotClicked(slot, slotId, mouseButton, type);
+  }
+  
+  private void enableSlot(int slot) {
+    this.updateSlotState(slot, true);
+  }
+  
+  private void disableSlot(int slot) {
+    this.updateSlotState(slot, false);
+  }
+  
+  private void updateSlotState(int slot, boolean state) {
+    this.menu.setSlotState(slot, state);
+    super.handleSlotStateChanged(slot, this.menu.containerId, state);
+    float f = state ? 1.0F : 0.75F;
+    this.player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.4F, f);
+    PacketDistributor.sendToServer(new SlotStatePayload(this.menu.getSlot(slot).getSlotIndex(),state,this.menu.getBlockEntity().getBlockPos()));
   }
 }

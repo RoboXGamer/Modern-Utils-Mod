@@ -34,4 +34,9 @@ public class ClientPayloadHandler {
     int mode = payload.mode();
     //TutorialMod.LOGGER.debug("Client received redstoneMode: {}", mode);
   }
+  
+  public static void handleData(SlotStatePayload payload, final IPayloadContext context) {
+    boolean state = payload.slotState();
+    //TutorialMod.LOGGER.debug("Client received redstoneMode: {}", mode);
+  }
 }
