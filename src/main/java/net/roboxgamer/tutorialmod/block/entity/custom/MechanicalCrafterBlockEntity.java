@@ -8,7 +8,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -60,7 +59,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private static final int RESULT_SLOT = 0;
   
   private int tc = 0;
-  private CraftingRecipe recipe;
+  private CustomRecipeExtender<?> recipe;
   private ItemStack result;
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
@@ -182,6 +181,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       be.recipe = be.getRecipe(slevel);
       if (be.recipe == null) {
         be.result = null;
+        PacketDistributor.sendToAllPlayers(new ItemStackPayload(ItemStack.EMPTY, be.getBlockPos()));
+        be.craftingSlots.setStackInSlot(MechanicalCrafterBlockEntity.RESULT_SLOT, ItemStack.EMPTY);
       }
       if (be.result != null) {
         PacketDistributor.sendToAllPlayers(new ItemStackPayload(be.result, be.getBlockPos()));
@@ -370,12 +371,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
           if (canCraft()){
             craft();
           }
-        };
+        }
       }
     }
     if (autoExportEnabled) {
       autoExport(slevel);
-    };
+    }
   }
   
   private void autoImport() {
@@ -520,7 +521,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
   }
 
-  private CraftingRecipe getRecipe(ServerLevel level) {
+  private CustomRecipeExtender<?> getRecipe(ServerLevel level) {
     if (this.craftingSlots.isCompletelyEmpty()) return null;
     RecipeManager recipes = level.getRecipeManager();
     var craftingSlotsStacksCopy = this.craftingSlots.getStacksCopy(1);
@@ -716,7 +717,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // TutorialMod.LOGGER.debug("input: {}", input.items());
 
     // Get the remaining items
-    NonNullList<ItemStack> remainingItems = this.recipe.getRemainingItems(input);
+    NonNullList<ItemStack> remainingItems = this.recipe.baseRecipe.getRemainingItems(input);
 
     // Now take the items out of the input
     inputCheck(this.inputSlots.getStacks(), ingredients);
