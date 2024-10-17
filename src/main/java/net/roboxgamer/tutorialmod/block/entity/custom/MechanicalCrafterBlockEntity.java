@@ -20,7 +20,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
-import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
@@ -688,7 +687,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     for (int i = 0; i < this.outputSlots.getSlots(); i++) {
       ItemStack outputSlot = this.outputSlots.getStackInSlot(i);
 
-      if (outputSlot.isEmpty()) {
+      if (outputSlot.isEmpty() && !isSlotDisabled(i)) {
         // If the output slot is empty, it can hold the full remaining count
         remainingCount = 0;
         break;

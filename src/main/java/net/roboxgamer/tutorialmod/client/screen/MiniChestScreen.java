@@ -1,7 +1,6 @@
 package net.roboxgamer.tutorialmod.client.screen;
 
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -9,19 +8,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
-import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.tutorialmod.block.entity.custom.renderer.MiniChestBlockEntity;
-import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.menu.MiniChestMenu;
-import net.roboxgamer.tutorialmod.network.RedstoneModePayload;
-import net.roboxgamer.tutorialmod.network.RemainItemTogglePayload;
-import net.roboxgamer.tutorialmod.util.RedstoneManager;
+
 import org.jetbrains.annotations.NotNull;
-
-import static net.roboxgamer.tutorialmod.util.RedstoneManager.REDSTONE_MODE_MAP;
-
 
 public class MiniChestScreen extends AbstractContainerScreen<MiniChestMenu> {
   private static final String location =
