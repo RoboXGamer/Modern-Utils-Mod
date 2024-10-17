@@ -153,11 +153,13 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     
     addRenderableWidget(myButton);
     
-    // Create and add buttons to the tab
-    for (int i = 0; i < 8; i++) {
-      Button button = Button.builder(Component.empty(),null).build();
-      SideConfigTab.addChild(button);
-    }
+    Button AutoImportBtn = Button.builder(Component.empty(),this.menu.getBlockEntity()::autoImportBtnHandler).build();
+    SideConfigTab.addChild(AutoImportBtn);
+    //// Create and add buttons to the tab
+    //for (int i = 1; i < 8; i++) {
+    //  Button button = Button.builder(Component.empty(),null).build();
+    //  SideConfigTab.addChild(button);
+    //}
   }
   
   private WidgetSprites getRedstoneButtonSprites() {

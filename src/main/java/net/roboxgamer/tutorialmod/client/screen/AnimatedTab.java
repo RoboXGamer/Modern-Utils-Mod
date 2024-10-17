@@ -169,7 +169,18 @@ public class AnimatedTab extends AbstractWidget {
   
   @Override
   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    if (isMouseOver(mouseX,mouseY)){
+      children.forEach(
+          (child)-> {
+            child.onClick(mouseX, mouseY,button);
+          }
+      );
+    }
     return false;
+  }
+  
+  public boolean isMouseOver(double mouseX, double mouseY) {
+    return mouseX >= this.getX() && mouseX <= this.getX() + this.width && mouseY >= this.getY() && mouseY <= this.getY() + this.height;
   }
   
   @Override

@@ -2,6 +2,8 @@ package net.roboxgamer.tutorialmod.block.entity.custom;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -23,6 +25,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -65,7 +68,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private List<ItemStack> craftingInputList;
   
   private Boolean autoImportEnabled = true;
-  private Boolean autoExportEnabled = true;
+  private Boolean autoExportEnabled = false;
   
   private final Map<Direction, Boolean> importDirections = new HashMap<>(
       Map.of(
@@ -99,6 +102,16 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public void setSlotState(int slotIndex, int v) {
     this.containerData.set(slotIndex, v);
     this.setChanged();
+  }
+  
+  public void autoImportBtnHandler(Button button) {
+  //  Logic to enable and disable auto import
+    TutorialMod.LOGGER.debug("Auto Import Button Pressed");
+    this.autoImportEnabled = !this.autoImportEnabled;
+    button.setTooltip(Tooltip.create(
+        autoImportEnabled ? Component.literal("Enable Auto Import") : Component.literal("Disable Auto Import")
+    ));
+    this.level.setBlockAndUpdate(this.getBlockPos(), this.getBlockState());
   }
   
   public class CustomItemStackHandler extends ItemStackHandler {
@@ -909,6 +922,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Store additional state variables
     tutorialModData.putInt("remainItemToggleValue", this.remainItemToggleValue);
     tutorialModData.putInt("redstoneMode", this.redstoneManager.getRedstoneMode().ordinal());
+    tutorialModData.putBoolean("autoImportEnabled", this.autoImportEnabled);
+    tutorialModData.putBoolean("autoExportEnabled", this.autoExportEnabled);
     
     // Save the result if it exists
     if (this.result != null && !this.result.isEmpty()) {
@@ -981,6 +996,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.redstoneManager.setRedstoneMode(
         REDSTONE_MODE_MAP.get(tag.getInt("redstoneMode"))
     );
+    this.autoImportEnabled = tag.getBoolean("autoImportEnabled");
+    this.autoExportEnabled = tag.getBoolean("autoExportEnabled");
     this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
     
     // Load the recipe if it exists
