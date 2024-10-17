@@ -2,6 +2,7 @@ package net.roboxgamer.tutorialmod.client.screen;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
+import net.minecraft.client.gui.navigation.ScreenAxis;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -10,7 +11,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.CrafterSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.tutorialmod.item.ModItems;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.menu.OutputSlotItemHandler;
 import net.roboxgamer.tutorialmod.network.RedstoneModePayload;
@@ -49,7 +50,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private static final Component DISABLED_SLOT_TOOLTIP = Component.translatable("gui.togglable_slot");
   
   private final BlockPos position;
-  private final int imageWidth, imageHeight;
+  //public final int imageWidth, imageHeight;
   private final Player player;
   
   private MechanicalCrafterBlockEntity blockEntity;
@@ -59,6 +60,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   //Widgets
   private Button button;
   private ImageButton redstoneModeButton;
+  private AnimatedTab SideConfigTab;
   
   
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
@@ -124,6 +126,38 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         }
     );
     updateRedstoneButtonTooltip();
+    
+    this.SideConfigTab = new AnimatedTab(
+        92, 92, Component.empty(), ExtendedButton.WidgetPosition.BOTTOM_LEFT
+    );
+    addRenderableWidget(SideConfigTab);
+    
+    ExtendedButton myButton = new ExtendedButton(
+        "Config_Btn",
+        24, 24,
+        Component.literal("S"),
+        true,  // Optional icon
+        ExtendedButton.WidgetPosition.BOTTOM_LEFT,
+        button -> {
+          //TutorialMod.LOGGER.debug("You pressed: {}", button.getMessage().getString());
+          SideConfigTab.toggleOpen();
+        }
+    ){
+      @Override
+      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        guiGraphics.renderFakeItem(ModItems.EXAMPLE_ITEM.get().getDefaultInstance(),
+                                   this.getRectangle().getCenterInAxis(ScreenAxis.HORIZONTAL) - 8,
+                                   this.getRectangle().getCenterInAxis(ScreenAxis.VERTICAL) - 8);
+      }
+    };
+    
+    addRenderableWidget(myButton);
+    
+    // Create and add buttons to the tab
+    for (int i = 0; i < 8; i++) {
+      Button button = Button.builder(Component.empty(),null).build();
+      SideConfigTab.addChild(button);
+    }
   }
   
   private WidgetSprites getRedstoneButtonSprites() {
@@ -193,6 +227,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
 
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
     this.renderTooltip(guiGraphics, mouseX, mouseY);
+    
+    //TutorialMod.LOGGER.debug("Mouse X: {}, Mouse Y: {}", mouseX, mouseY);
     
     if (this.hoveredSlot instanceof OutputSlotItemHandler
         && !this.menu.isSlotDisabled(this.hoveredSlot.getSlotIndex())
