@@ -61,6 +61,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private Button button;
   private ImageButton redstoneModeButton;
   private AnimatedTab SideConfigTab;
+  private Button autoImportBtn;
+  private ExtendedButton sideConfigBtn;
   
   
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
@@ -132,7 +134,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     );
     addRenderableWidget(SideConfigTab);
     
-    ExtendedButton myButton = new ExtendedButton(
+    this.sideConfigBtn = new ExtendedButton(
         "Config_Btn",
         24, 24,
         Component.literal("S"),
@@ -151,10 +153,11 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       }
     };
     
-    addRenderableWidget(myButton);
+    addRenderableWidget(this.sideConfigBtn);
     
-    Button AutoImportBtn = Button.builder(Component.empty(),this.menu.getBlockEntity()::autoImportBtnHandler).build();
-    SideConfigTab.addChild(AutoImportBtn);
+    this.autoImportBtn = Button.builder(Component.empty(), this::handleAutoImportButtonClick).build();
+    updateAutoImportButtonTooltip();
+    SideConfigTab.addChild(this.autoImportBtn);
     //// Create and add buttons to the tab
     //for (int i = 1; i < 8; i++) {
     //  Button button = Button.builder(Component.empty(),null).build();
@@ -177,6 +180,15 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     TutorialMod.LOGGER.debug("Toggled redstoneModeValue to {}", value);
     PacketDistributor.sendToServer(new RedstoneModePayload(value.ordinal(), this.blockEntity.getBlockPos()));
     updateRedstoneButtonTooltip();
+  }
+  
+  private void handleAutoImportButtonClick(Button button) {
+    this.blockEntity.autoImportBtnHandler();
+    updateAutoImportButtonTooltip();
+  }
+  
+  private void updateAutoImportButtonTooltip() {
+    this.autoImportBtn.setTooltip(Tooltip.create(blockEntity.isAutoImportEnabled() ? Component.literal("Disable Auto Import") : Component.literal("Enable Auto Import")));
   }
   
   private void updateRedstoneButtonTooltip() {

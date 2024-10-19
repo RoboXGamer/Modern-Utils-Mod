@@ -38,6 +38,7 @@ import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.network.ItemStackPayload;
+import net.roboxgamer.tutorialmod.network.SlotStatePayload;
 import net.roboxgamer.tutorialmod.util.Constants;
 import net.roboxgamer.tutorialmod.util.CustomRecipeExtender;
 import net.roboxgamer.tutorialmod.util.RedstoneManager;
@@ -104,14 +105,29 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.setChanged();
   }
   
-  public void autoImportBtnHandler(Button button) {
+  public void autoImportBtnHandler() {
   //  Logic to enable and disable auto import
     TutorialMod.LOGGER.debug("Auto Import Button Pressed");
     this.autoImportEnabled = !this.autoImportEnabled;
-    button.setTooltip(Tooltip.create(
-        autoImportEnabled ? Component.literal("Enable Auto Import") : Component.literal("Disable Auto Import")
-    ));
-    this.level.setBlockAndUpdate(this.getBlockPos(), this.getBlockState());
+    PacketDistributor.sendToServer(
+        new SlotStatePayload(-2,this.autoImportEnabled,this.getBlockPos())
+    );
+  }
+  
+  public void setAutoExport(boolean state) {
+    this.autoExportEnabled = state;
+  }
+  
+  public void setAutoImport(boolean state) {
+    this.autoImportEnabled = state;
+  }
+  
+  public boolean isAutoImportEnabled() {
+    return this.autoImportEnabled;
+  }
+  
+  public boolean isAutoExportEnabled() {
+    return this.autoExportEnabled;
   }
   
   public class CustomItemStackHandler extends ItemStackHandler {
