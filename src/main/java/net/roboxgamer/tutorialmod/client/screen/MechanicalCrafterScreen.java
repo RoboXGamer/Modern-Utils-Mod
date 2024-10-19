@@ -63,6 +63,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private AnimatedTab SideConfigTab;
   private Button autoImportBtn;
   private ExtendedButton sideConfigBtn;
+  private Button autoExportBtn;
   
   
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
@@ -158,11 +159,24 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.autoImportBtn = Button.builder(Component.empty(), this::handleAutoImportButtonClick).build();
     updateAutoImportButtonTooltip();
     SideConfigTab.addChild(this.autoImportBtn);
+    
+    this.autoExportBtn = Button.builder(Component.empty(), this::handleAutoExportButtonClick).build();
+    updateAutoExportButtonTooltip();
+    SideConfigTab.addChild(this.autoExportBtn);
     //// Create and add buttons to the tab
     //for (int i = 1; i < 8; i++) {
     //  Button button = Button.builder(Component.empty(),null).build();
     //  SideConfigTab.addChild(button);
     //}
+  }
+  
+  private void handleAutoExportButtonClick(Button button) {
+    this.blockEntity.autoExportBtnHandler();
+    updateAutoExportButtonTooltip();
+  }
+  
+  private void updateAutoExportButtonTooltip() {
+    this.autoExportBtn.setTooltip(Tooltip.create(blockEntity.isAutoExportEnabled() ? Component.literal("Disable Auto Export") : Component.literal("Enable Auto Export")));
   }
   
   private WidgetSprites getRedstoneButtonSprites() {

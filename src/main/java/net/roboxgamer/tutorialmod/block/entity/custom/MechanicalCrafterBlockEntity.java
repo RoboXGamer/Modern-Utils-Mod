@@ -114,6 +114,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     );
   }
   
+  public void autoExportBtnHandler() {
+    TutorialMod.LOGGER.debug("Auto Export Button Pressed");
+    this.autoExportEnabled = !this.autoExportEnabled;
+    PacketDistributor.sendToServer(
+        new SlotStatePayload(-1,this.autoExportEnabled,this.getBlockPos())
+    );
+  }
+  
   public void setAutoExport(boolean state) {
     this.autoExportEnabled = state;
   }
