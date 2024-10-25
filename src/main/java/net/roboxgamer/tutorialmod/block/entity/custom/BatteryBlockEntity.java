@@ -13,6 +13,8 @@ import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.util.ExtendedEnergyStorage;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public class BatteryBlockEntity extends BlockEntity {
   private int tc = 0;
   
@@ -30,7 +32,7 @@ public class BatteryBlockEntity extends BlockEntity {
   }
   
   private void deserializeFromTag(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
-    this.energyStorage.deserializeNBT(registries, tag.getCompound("Energy"));
+    this.energyStorage.deserializeNBT(registries, Objects.requireNonNull(tag.get("Energy")));
   }
   
   @Override
@@ -64,7 +66,7 @@ public class BatteryBlockEntity extends BlockEntity {
     
     if (everySecond(1)) {
       //  TESTING
-      be.energyStorage.removeEnergy(100);
+      //be.energyStorage.removeEnergy(100);
     }
   }
 

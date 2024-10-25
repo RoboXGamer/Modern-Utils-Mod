@@ -5,6 +5,7 @@
   "block.tutorialmod.mechanical_crafter_block": "Mechanical Crafter",
   "block.tutorialmod.example_inventory_block": "Example Inventory Block",
   "block.tutorialmod.mini_chest_block": "Mini Chest",
+  "block.tutorialmod.battery_block": "Battery Block",
   "creativetab.tutorialmod.tab": "Tutorial Mod",
   "config.jade.plugin_tutorialmod.data": "Speed",
   "tooltip.tutorialmod.data": "Speed: %s",

@@ -31,6 +31,7 @@ public class ModBlockLootTableProvider extends BlockLootSubProvider {
     dropSelf(ModBlocks.MECHANICAL_CRAFTER_BLOCK.get());
     dropSelf(ModBlocks.EXAMPLE_INVENTORY_BLOCK.get());
     dropSelf(ModBlocks.MINI_CHEST_BLOCK.get());
+    dropSelf(ModBlocks.BATTERY_BLOCK.get());
   }
 
   protected LootTable.Builder createMultipleOreDrops(Block pBlock, Item item, float minDrops, float maxDrops) {
