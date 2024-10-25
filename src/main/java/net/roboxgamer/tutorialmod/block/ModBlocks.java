@@ -10,10 +10,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.roboxgamer.tutorialmod.TutorialMod;
-import net.roboxgamer.tutorialmod.block.custom.ExampleInventoryBlock;
-import net.roboxgamer.tutorialmod.block.custom.MagicBlock;
-import net.roboxgamer.tutorialmod.block.custom.MechanicalCrafterBlock;
-import net.roboxgamer.tutorialmod.block.custom.MiniChestBlock;
+import net.roboxgamer.tutorialmod.block.custom.*;
 import net.roboxgamer.tutorialmod.item.ModItems;
 
 import java.util.function.Supplier;
@@ -37,6 +34,9 @@ public class ModBlocks {
   
   public static final DeferredBlock<MiniChestBlock> MINI_CHEST_BLOCK = registerBlock("mini_chest_block", ()->
       new MiniChestBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
+  
+  public static final DeferredBlock<BatteryBlock> BATTERY_BLOCK = registerBlock("battery_block", ()->
+      new BatteryBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
 
   private static <T extends Block> DeferredBlock<T> registerBlock(String name, Supplier<T> block) {
     DeferredBlock<T> toReturn = BLOCKS.register(name, block);
