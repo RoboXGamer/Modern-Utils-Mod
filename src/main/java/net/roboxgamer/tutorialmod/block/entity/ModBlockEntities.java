@@ -7,6 +7,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.ModBlocks;
+import net.roboxgamer.tutorialmod.block.custom.BatteryBlock;
+import net.roboxgamer.tutorialmod.block.entity.custom.BatteryBlockEntity;
 import net.roboxgamer.tutorialmod.block.entity.custom.ExampleInventoryBlockEntity;
 import net.roboxgamer.tutorialmod.block.entity.custom.MagicBlockBlockEntity;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
@@ -40,6 +42,12 @@ public class ModBlockEntities {
       BLOCK_ENTITIES.register("mini_chest_block_entity", () -> BlockEntityType.Builder.
           of(MiniChestBlockEntity::new,
              ModBlocks.MINI_CHEST_BLOCK.get())
+          .build(null));
+  
+  public static final Supplier<BlockEntityType<BatteryBlockEntity>> BATTERY_BLOCK_ENTITY =
+      BLOCK_ENTITIES.register("battery_block_entity", () -> BlockEntityType.Builder.
+          of(BatteryBlockEntity::new,
+             ModBlocks.BATTERY_BLOCK.get())
           .build(null));
   
   

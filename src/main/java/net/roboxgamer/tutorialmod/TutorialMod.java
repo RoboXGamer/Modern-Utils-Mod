@@ -103,6 +103,10 @@ public class TutorialMod {
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MINI_CHEST_BLOCK_ENTITY.get(),
         (be, side) -> be.getInv());
+    event.registerBlockEntity(
+        Capabilities.EnergyStorage.BLOCK,
+        ModBlockEntities.BATTERY_BLOCK_ENTITY.get(),
+        (be, side) -> be.getEnergyStorage());
   }
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

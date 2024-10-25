@@ -69,7 +69,7 @@ public class ExtendedButton extends AbstractWidget {
   @Override
   public boolean mouseClicked(double mouseX, double mouseY, int button) {
     if (this.isHovered()) {
-      //TutorialMod.LOGGER.debug("Button clicked: {}", this.name);
+      TutorialMod.LOGGER.debug("Button clicked: {}", this.name);
       this.button = Button.builder(Component.nullToEmpty(this.name), this.onPress).size(this.width, this.height).build();
       this.onPress.onPress(this.button);
       return true;

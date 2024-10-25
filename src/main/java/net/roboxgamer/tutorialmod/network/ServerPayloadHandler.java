@@ -57,10 +57,28 @@ public class ServerPayloadHandler {
     var state = payload.slotState();
     var slotIndex = payload.slotIndex();
     var blockPos = payload.blockPos();
-    TutorialMod.LOGGER.debug("Server received slotState: {}", state);
-    var blockEntity = context.player().level().getBlockEntity(blockPos);
-    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-      be.setSlotState(slotIndex, state ? 0 : 1);
-    }
+    //   SPECIAL CASE: Slot -1 is for auto export enabling/disabling
+    //   SPECIAL CASE: Slot -2 is for auto import enabling/disabling
+    switch (slotIndex) {
+        case -1 -> {
+          var blockEntity = context.player().level().getBlockEntity(blockPos);
+          if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+            be.setAutoExport(state);
+          }
+        }
+        case -2 -> {
+          var blockEntity = context.player().level().getBlockEntity(blockPos);
+          if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+            be.setAutoImport(state);
+          }
+        }
+        default -> {
+          TutorialMod.LOGGER.debug("Server received slotState: {}", state);
+          var blockEntity = context.player().level().getBlockEntity(blockPos);
+          if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+            be.setSlotState(slotIndex, state ? 0 : 1);
+          }
+        }
+      }
   }
 }

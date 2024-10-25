@@ -20,7 +20,7 @@ public class AnimatedTab extends AbstractWidget {
   private float animatedHeight = 0;
   private final int targetWidth;
   private final int targetHeight;
-  private final float animationSpeed = 0.2f;  // Adjust this value for faster/slower animations
+  private final float animationSpeed = 0.3f;  // Adjust this value for faster/slower animations
   
   // Add a list for child widgets
   private final List<AbstractWidget> children = new ArrayList<>();
@@ -85,7 +85,7 @@ public class AnimatedTab extends AbstractWidget {
     this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
     
     // Use an epsilon check to determine if the tab is fully opened
-    if (Math.abs(animatedWidth - width) < 0.1F && Math.abs(animatedHeight - height) < 0.1F) {
+    if (Math.abs(animatedWidth - width) < 1F && Math.abs(animatedHeight - height) < 1F) {
       renderChildren(guiGraphics, mouseX, mouseY, partialTick);
     }
     
@@ -169,7 +169,20 @@ public class AnimatedTab extends AbstractWidget {
   
   @Override
   public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    if (this.isMouseOver(mouseX, mouseY) && this.isOpen) {
+      //  Click event passed to the children
+      for (AbstractWidget child : this.children) {
+        if (child.isMouseOver(mouseX, mouseY)) {
+          child.onClick(mouseX, mouseY, button);
+          return true;
+        }
+      }
+    }
     return false;
+  }
+  
+  public boolean isMouseOver(double mouseX, double mouseY) {
+    return mouseX >= this.getX() && mouseX <= this.getX() + this.width && mouseY >= this.getY() && mouseY <= this.getY() + this.height;
   }
   
   @Override
