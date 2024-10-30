@@ -9,10 +9,14 @@ import net.roboxgamer.tutorialmod.TutorialMod;
 public class ModItems {
   public static final DeferredRegister.Items ITEMS =
       DeferredRegister.createItems(TutorialMod.MODID);
+  
+  public static final DeferredRegister.Items WIP_ITEMS =
+      DeferredRegister.createItems(TutorialMod.MODID);
 
-  public static final DeferredItem<Item> EXAMPLE_ITEM = ITEMS.register("example_item",()-> new Item(new Item.Properties()));
+  public static final DeferredItem<Item> EXAMPLE_ITEM = WIP_ITEMS.register("example_item",()-> new Item(new Item.Properties()));
 
   public static void register(IEventBus eventBus) {
     ITEMS.register(eventBus);
+    WIP_ITEMS.register(eventBus);
   }
 }
