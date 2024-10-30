@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "modernutils:block/mechanical_crafter_block",
+    "down": "modernutils:block/mechanical_crafter_bottom",
+    "north": "modernutils:block/mechanical_crafter_block_side",
+    "east": "modernutils:block/mechanical_crafter_block_side",
+    "south": "modernutils:block/mechanical_crafter_block_side",
+    "west": "modernutils:block/mechanical_crafter_block_side",
+    "particle": "modernutils:block/mechanical_crafter_block_side"
+  }
+}
