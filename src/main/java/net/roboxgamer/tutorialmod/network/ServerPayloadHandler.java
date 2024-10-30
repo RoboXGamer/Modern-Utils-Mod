@@ -1,10 +1,12 @@
 package net.roboxgamer.tutorialmod.network;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.tutorialmod.util.Constants;
 
 import static net.roboxgamer.tutorialmod.util.RedstoneManager.REDSTONE_MODE_MAP;
 
@@ -80,5 +82,16 @@ public class ServerPayloadHandler {
           }
         }
       }
+  }
+  
+  public static void handleData(SideStatePayload payload, final IPayloadContext context) {
+    Constants.Sides side = payload.side();
+    Constants.SideState sideState = payload.sideState();
+    BlockPos blockPos = payload.blockPos();
+    TutorialMod.LOGGER.debug("Server received sideStatePayload: {}", payload);
+    var blockEntity = context.player().level().getBlockEntity(blockPos);
+    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+      be.handleSideBtnClick(side,null);
+    }
   }
 }

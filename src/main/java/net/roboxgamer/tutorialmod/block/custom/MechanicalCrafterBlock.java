@@ -1,10 +1,12 @@
 package net.roboxgamer.tutorialmod.block.custom;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -17,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
@@ -25,15 +28,26 @@ import org.jetbrains.annotations.Nullable;
 
 public class MechanicalCrafterBlock extends Block implements EntityBlock {
   public static BooleanProperty POWERED = BlockStateProperties.POWERED;
+  public static DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
   
   public MechanicalCrafterBlock(Properties properties) {
     super(properties);
-    this.registerDefaultState(this.defaultBlockState().setValue(POWERED, false));
+    this.registerDefaultState(this.defaultBlockState().setValue(POWERED, false).setValue(FACING, Direction.NORTH));
   }
   
   @Override
   protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
     builder.add(POWERED);
+    builder.add(FACING);
+  }
+  
+  @Override
+  public @Nullable BlockState getStateForPlacement(@NotNull BlockPlaceContext context) {
+    Level level = context.getLevel();
+    BlockPos pos = context.getClickedPos();
+    return this.defaultBlockState()
+        .setValue(FACING, context.getHorizontalDirection().getOpposite())
+        .setValue(POWERED, level.hasNeighborSignal(pos));
   }
   
   @Override

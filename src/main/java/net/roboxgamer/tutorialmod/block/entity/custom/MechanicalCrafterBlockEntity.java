@@ -35,17 +35,22 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.tutorialmod.TutorialMod;
+import net.roboxgamer.tutorialmod.block.custom.MechanicalCrafterBlock;
 import net.roboxgamer.tutorialmod.block.entity.ModBlockEntities;
 import net.roboxgamer.tutorialmod.menu.MechanicalCrafterMenu;
 import net.roboxgamer.tutorialmod.network.ItemStackPayload;
+import net.roboxgamer.tutorialmod.network.SideStatePayload;
 import net.roboxgamer.tutorialmod.network.SlotStatePayload;
 import net.roboxgamer.tutorialmod.util.Constants;
 import net.roboxgamer.tutorialmod.util.CustomRecipeExtender;
 import net.roboxgamer.tutorialmod.util.RedstoneManager;
+import org.apache.logging.log4j.message.Message;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,14 +89,80 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private final Map<Direction, Boolean> exportDirections = new HashMap<>(
       Map.of(
-          Direction.NORTH, true,
-          Direction.SOUTH, true,
-          Direction.EAST, true,
-          Direction.WEST, true,
-          Direction.UP, true,
-          Direction.DOWN, true
+          Direction.NORTH, false,
+          Direction.SOUTH, false,
+          Direction.EAST, false,
+          Direction.WEST, false,
+          Direction.UP, false,
+          Direction.DOWN, false
       )
   );
+  
+  private final Map<Constants.Sides, Constants.SideState> sideBtnStates = new HashMap<>(
+      Map.of(
+          Constants.Sides.UP, Constants.SideState.INPUT,
+          Constants.Sides.DOWN, Constants.SideState.INPUT,
+          Constants.Sides.LEFT, Constants.SideState.INPUT,
+          Constants.Sides.RIGHT, Constants.SideState.INPUT,
+          Constants.Sides.BACK, Constants.SideState.INPUT,
+          Constants.Sides.FRONT, Constants.SideState.INPUT
+      )
+  );
+  
+  public Direction getRelativeDirection(Constants.Sides side) {
+    Direction facingDir = getBlockState().getValue(MechanicalCrafterBlock.FACING);
+    Direction sideDir = switch (side) {
+      case UP -> Direction.UP;
+      case DOWN -> Direction.DOWN;
+      case LEFT -> facingDir.getClockWise();
+      case RIGHT -> facingDir.getCounterClockWise();
+      case BACK -> facingDir.getOpposite();
+      case FRONT -> facingDir;
+      default -> Direction.NORTH;
+    };
+    return sideDir;
+  }
+  
+  public void handleSideBtnClick(@NotNull Constants.Sides side, Button button) {
+    Direction sideDir = getRelativeDirection(side);
+    
+  //  Cycle through the side states
+    Constants.SideState sideState = getSideState(side);
+    int currentState = sideState.ordinal();
+    int nextState = (currentState + 1) % Constants.SideState.values().length;
+    this.sideBtnStates.put(side, Constants.SideState.values()[nextState]);
+    
+    
+    // Handle sideState
+    sideState = getSideState(side);
+    switch (sideState){
+      case INPUT -> this.importDirections.put(sideDir,true);
+      case OUTPUT -> this.exportDirections.put(sideDir,true);
+      case BOTH -> {
+        this.importDirections.put(sideDir,true);
+        this.exportDirections.put(sideDir,true);
+      }
+      case NONE -> {
+        this.importDirections.put(sideDir,false);
+        this.exportDirections.put(sideDir,false);
+      }
+    }
+    if (button != null) {
+      button.setMessage(Component.literal(String.format("%s Side,State: %s",side,sideState)));
+    }
+    
+    TutorialMod.LOGGER.debug("Side {} State Changed to {}",side, getSideState(side));
+    setChanged();
+    if (level != null && level.isClientSide()) {
+      PacketDistributor.sendToServer(
+          new SideStatePayload(side, sideState, this.getBlockPos())
+      );
+    }
+  }
+  
+  public Constants.SideState getSideState(Constants.Sides side){
+    return this.sideBtnStates.get(side);
+  }
   
   private final RedstoneManager redstoneManager = new RedstoneManager(this);
   private ContainerData containerData;
@@ -466,14 +537,13 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private void importFromAdjacentInventories(List<IngredientNeed> neededItems, Direction direction) {
       if (neededItems.isEmpty()) return;
-      
       BlockPos pos = this.getBlockPos().relative(direction);
       if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel))
         return;
       BlockEntity blockEntity = this.level.getBlockEntity(pos);
       if (blockEntity == null) return;
       
-      IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
+      IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction.getOpposite());
       if (cap == null) return;
       
       Iterator<IngredientNeed> iterator = neededItems.iterator();
@@ -534,7 +604,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock) {
         if (level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity) return;
         // Get the item handler from the block entity
-        IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction);
+        IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction.getOpposite());
         if (cap == null)
           continue;
         
@@ -860,7 +930,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (side == null) {
       return this.combinedInvHandler;
     }
-    
     boolean canImport = importDirections.getOrDefault(side, false);
     boolean canExport = exportDirections.getOrDefault(side, false);
     
@@ -955,11 +1024,51 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     
     this.addDisabledSlots(tutorialModData);
+    this.saveSidesConfig(tutorialModData);
     
     // Attempt to save the recipe, if available
     saveRecipeToNBT(tutorialModData, registries);
     
     return tutorialModData;
+  }
+  
+  private void saveSidesConfig(CompoundTag tag) {
+    CompoundTag sidesConfig = new CompoundTag();
+    sidesConfig.putInt("up", this.sideBtnStates.get(Constants.Sides.UP).ordinal());
+    sidesConfig.putInt("down", this.sideBtnStates.get(Constants.Sides.DOWN).ordinal());
+    sidesConfig.putInt("left", this.sideBtnStates.get(Constants.Sides.LEFT).ordinal());
+    sidesConfig.putInt("right", this.sideBtnStates.get(Constants.Sides.RIGHT).ordinal());
+    sidesConfig.putInt("back", this.sideBtnStates.get(Constants.Sides.BACK).ordinal());
+    sidesConfig.putInt("front", this.sideBtnStates.get(Constants.Sides.FRONT).ordinal());
+    tag.put("sidesConfig", sidesConfig);
+  }
+  
+  private void loadSidesConfig(CompoundTag tag) {
+    CompoundTag sidesConfig = tag.getCompound("sidesConfig");
+    this.sideBtnStates.put(Constants.Sides.UP, Constants.SideState.values()[sidesConfig.getInt("up")]);
+    this.sideBtnStates.put(Constants.Sides.DOWN, Constants.SideState.values()[sidesConfig.getInt("down")]);
+    this.sideBtnStates.put(Constants.Sides.LEFT, Constants.SideState.values()[sidesConfig.getInt("left")]);
+    this.sideBtnStates.put(Constants.Sides.RIGHT, Constants.SideState.values()[sidesConfig.getInt("right")]);
+    this.sideBtnStates.put(Constants.Sides.BACK, Constants.SideState.values()[sidesConfig.getInt("back")]);
+    this.sideBtnStates.put(Constants.Sides.FRONT, Constants.SideState.values()[sidesConfig.getInt("front")]);
+    
+    for (Constants.Sides side : Constants.Sides.values()) {
+      var sideState = getSideState(side);
+      Direction sideDir = getRelativeDirection(side);
+      
+      switch (sideState){
+        case INPUT -> this.importDirections.put(sideDir,true);
+        case OUTPUT -> this.exportDirections.put(sideDir,true);
+        case BOTH -> {
+          this.importDirections.put(sideDir,true);
+          this.exportDirections.put(sideDir,true);
+        }
+        case NONE -> {
+          this.importDirections.put(sideDir,false);
+          this.exportDirections.put(sideDir,false);
+        }
+      }
+    }
   }
   
   private void addDisabledSlots(CompoundTag tag) {
@@ -1040,6 +1149,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         this.containerData.set(j, 1);
       }
     }
+    
+    this.loadSidesConfig(tag);
   }
   
   private boolean slotCanBeDisabled(int slot) {

@@ -5,6 +5,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.tutorialmod.TutorialMod;
 import net.roboxgamer.tutorialmod.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.tutorialmod.util.Constants;
 
 public class ClientPayloadHandler {
   public static void handleData(RemainItemTogglePayload payload, final IPayloadContext context) {
@@ -38,5 +39,9 @@ public class ClientPayloadHandler {
   public static void handleData(SlotStatePayload payload, final IPayloadContext context) {
     boolean state = payload.slotState();
     //TutorialMod.LOGGER.debug("Client received redstoneMode: {}", mode);
+  }
+  
+  public static void handleData(SideStatePayload payload, final IPayloadContext context) {
+    TutorialMod.LOGGER.debug("Client received sideStatePayload: {}", payload);
   }
 }

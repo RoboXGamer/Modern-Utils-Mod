@@ -25,4 +25,20 @@ public class Constants {
     BLACKLISTED,
     SPECIAL
   }
+  
+  public enum Sides{
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    BACK,
+    FRONT
+  }
+  
+  public enum SideState{
+    NONE,
+    INPUT,
+    OUTPUT,
+    BOTH,
+  }
 }

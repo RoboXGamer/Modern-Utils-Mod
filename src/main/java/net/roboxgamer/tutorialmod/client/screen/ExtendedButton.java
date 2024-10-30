@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -20,7 +21,7 @@ public class ExtendedButton extends AbstractWidget {
   
   // Enum for predefined positions
   public enum WidgetPosition {
-    TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
+    TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,NONE
   }
   
   // Constructor
@@ -61,6 +62,10 @@ public class ExtendedButton extends AbstractWidget {
           this.setX(guiLeft + guiWidth);
           this.setY(guiTop + guiHeight - this.height);
           break;
+        case NONE:
+          this.setX(guiLeft);
+          this.setY(guiTop);
+          break;
       }
     }
   }
@@ -75,6 +80,11 @@ public class ExtendedButton extends AbstractWidget {
       return true;
     }
     return false;
+  }
+  
+  @Override
+  public void onClick(double mouseX, double mouseY, int button) {
+    mouseClicked(mouseX, mouseY, button);
   }
   
   public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
@@ -96,13 +106,24 @@ public class ExtendedButton extends AbstractWidget {
     // draw a background of semi black
     this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
     if (icon){
-      this.renderIcon(guiGraphics,mouseX,mouseY,partialTick);
+      this.renderIcon(guiGraphics,mouseX,mouseY,partialTick,this);
     } else {
       this.renderText(guiGraphics, mouseX, mouseY, partialTick);
     }
+    if (this.isHovered()) {
+      this.renderTooltip(guiGraphics, mouseX, mouseY);
+    }
   }
   
-  public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {}
+  private void renderTooltip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    Component msg = this.getMessage();
+    if (this.button != null){
+      msg = this.button.getMessage();
+    }
+    guiGraphics.renderTooltip(Minecraft.getInstance().font,msg,mouseX,mouseY);
+  }
+  
+  public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {}
   
   @Override
   protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {}
