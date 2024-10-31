@@ -9,7 +9,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.roboxgamer.modernutils.ModernUtilsMod;
-import net.roboxgamer.modernutils.block.entity.custom.renderer.MiniChestBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
 import net.roboxgamer.modernutils.menu.MiniChestMenu;
 
 import org.jetbrains.annotations.NotNull;

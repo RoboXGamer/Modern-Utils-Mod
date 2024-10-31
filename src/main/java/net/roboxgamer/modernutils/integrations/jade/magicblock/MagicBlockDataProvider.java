@@ -23,7 +23,7 @@ public enum MagicBlockDataProvider implements
       IPluginConfig iPluginConfig) {
     int count = blockAccessor.getServerData().getInt("data");
     IElement elem = IElementHelper.get().text(
-        Component.translatable("tooltip.tutorialmod.data", count)
+        Component.translatable("tooltip.modernutils.data", count)
     );
     iTooltip.add(elem);
   }

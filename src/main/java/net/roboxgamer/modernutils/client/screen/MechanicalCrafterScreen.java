@@ -153,7 +153,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         true,  // Optional icon
         ExtendedButton.WidgetPosition.BOTTOM_LEFT,
         button -> {
-          //TutorialMod.LOGGER.debug("You pressed: {}", button.getMessage().getString());
           SideConfigTab.toggleOpen();
         }
     ){
@@ -444,7 +443,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
     this.renderTooltip(guiGraphics, mouseX, mouseY);
     
-    //TutorialMod.LOGGER.debug("Mouse X: {}, Mouse Y: {}", mouseX, mouseY);
+    //ModernUtils.LOGGER.debug("Mouse X: {}, Mouse Y: {}", mouseX, mouseY);
     
     if (this.hoveredSlot instanceof OutputSlotItemHandler
         && !this.menu.isSlotDisabled(this.hoveredSlot.getSlotIndex())

@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.roboxgamer.modernutils.block.entity.custom.renderer.MiniChestBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

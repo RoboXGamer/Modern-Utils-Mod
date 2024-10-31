@@ -24,11 +24,11 @@ public class BatteryBlockEntity extends BlockEntity {
     super(ModBlockEntities.BATTERY_BLOCK_ENTITY.get(), pos, blockState);
   }
   
-  CompoundTag getTutorialModData(HolderLookup.Provider registries) {
-    CompoundTag tutorialModData = new CompoundTag();
+  CompoundTag getModData(HolderLookup.Provider registries) {
+    CompoundTag modData = new CompoundTag();
     
-    tutorialModData.put("Energy", this.energyStorage.serializeNBT(registries));
-    return tutorialModData;
+    modData.put("Energy", this.energyStorage.serializeNBT(registries));
+    return modData;
   }
   
   private void deserializeFromTag(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
@@ -51,7 +51,7 @@ public class BatteryBlockEntity extends BlockEntity {
   @Override
   protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.saveAdditional(tag, registries);
-    CompoundTag modData = getTutorialModData(registries);
+    CompoundTag modData = getModData(registries);
     tag.put(ModernUtilsMod.MODID, modData);
   }
   

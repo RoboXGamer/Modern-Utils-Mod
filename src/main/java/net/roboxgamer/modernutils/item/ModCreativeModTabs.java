@@ -15,7 +15,7 @@ public class ModCreativeModTabs {
       = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ModernUtilsMod.MODID);
 
   public static final Supplier<CreativeModeTab> MODERN_UTILS_TAB =
-      CREATIVE_MOD_TAB.register("tutorial_mod_tab",
+      CREATIVE_MOD_TAB.register("modernutils_tab",
                                 () -> CreativeModeTab.builder()
                                     .icon(() -> new ItemStack(ModItems.EXAMPLE_ITEM.get()))
                                     .title(

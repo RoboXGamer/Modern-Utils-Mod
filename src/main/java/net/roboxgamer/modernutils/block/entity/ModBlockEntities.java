@@ -11,7 +11,7 @@ import net.roboxgamer.modernutils.block.entity.custom.BatteryBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.ExampleInventoryBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.renderer.MiniChestBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
 
 import java.util.function.Supplier;
 

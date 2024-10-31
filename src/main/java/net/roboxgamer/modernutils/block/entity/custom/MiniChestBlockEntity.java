@@ -1,4 +1,4 @@
-package net.roboxgamer.modernutils.block.entity.custom.renderer;
+package net.roboxgamer.modernutils.block.entity.custom;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class MiniChestBlockEntity extends BlockEntity implements MenuProvider {
-  private static final Component TITLE = Component.translatable("block.tutorialmod.mini_chest_block");
+  private static final Component TITLE = Component.translatable("block.modernutils.mini_chest_block");
   public MiniChestBlockEntity(BlockPos pos, BlockState blockState) {
     super(ModBlockEntities.MINI_CHEST_BLOCK_ENTITY.get(), pos, blockState);
   }
@@ -58,8 +58,8 @@ public class MiniChestBlockEntity extends BlockEntity implements MenuProvider {
   @Override
   protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.saveAdditional(tag, registries);
-    CompoundTag tutorialModData = getBEData(registries);
-    tag.put(ModernUtilsMod.MODID, tutorialModData);
+    CompoundTag modData = getBEData(registries);
+    tag.put(ModernUtilsMod.MODID, modData);
   }
   
   @Override
@@ -70,8 +70,8 @@ public class MiniChestBlockEntity extends BlockEntity implements MenuProvider {
       // Deserialize data from the tag for client-side
       deserializeFromTag(tag, registries);
     } else {
-      CompoundTag tutorialModData = tag.getCompound(ModernUtilsMod.MODID);
-      deserializeFromTag(tutorialModData, registries);
+      CompoundTag modData = tag.getCompound(ModernUtilsMod.MODID);
+      deserializeFromTag(modData, registries);
     }
   }
   

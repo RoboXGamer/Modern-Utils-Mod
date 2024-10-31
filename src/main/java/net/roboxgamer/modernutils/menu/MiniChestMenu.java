@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import net.roboxgamer.modernutils.block.ModBlocks;
-import net.roboxgamer.modernutils.block.entity.custom.renderer.MiniChestBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;

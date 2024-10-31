@@ -55,7 +55,7 @@ import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_SPECI
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
-  public Component TITLE = Component.translatable("block.tutorialmod.mechanical_crafter_block");
+  public Component TITLE = Component.translatable("block.modernutils.mechanical_crafter_block");
   
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
@@ -433,7 +433,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.tc++;
     if (everySecond(60))
       this.tc = 0; // Every 1 minute
-    // TutorialMod.LOGGER.debug("tc: {}", this.tc);
+    // ModernUtils.LOGGER.debug("tc: {}", this.tc);
     if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel slevel))
       return;
 
@@ -467,7 +467,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
     if (everySecond(0.5)) { // Every 10 ticks
       if (canCraft()) {
-        // TutorialMod.LOGGER.info("Can Craft!");
+        // ModernUtils.LOGGER.info("Can Craft!");
         craft();
       } else {
         if (autoImportEnabled) {
@@ -637,12 +637,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return null;
     }
     RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst(); // TODO: Add support for multiple recipes conflicting with the same input
-    // TutorialMod.LOGGER.debug("foundRecipe: {}", foundRecipe);
+    // ModernUtils.LOGGER.debug("foundRecipe: {}", foundRecipe);
     
     ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
     if (result.isEmpty()) return null;
     this.result = result;
-    // TutorialMod.LOGGER.debug("Result: {}", this.result);
+    // ModernUtils.LOGGER.debug("Result: {}", this.result);
     
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
@@ -715,7 +715,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Iterate over each ingredient in the recipe
     for (Ingredient ingredient : ingredients) {
       boolean matched = false;
-      // TutorialMod.LOGGER.info("Ingredient: {}", ingredient);
+      // ModernUtils.LOGGER.info("Ingredient: {}", ingredient);
       if (ingredient.getItems().length == 0)
         continue;
 
@@ -751,7 +751,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
       // If no input item could satisfy this ingredient, return false
       if (!matched) {
-        // TutorialMod.LOGGER.debug("Crafting failed: Cannot craft");
+        // ModernUtils.LOGGER.debug("Crafting failed: Cannot craft");
         return false;
       }
     }
@@ -817,7 +817,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
     // Get the crafting input from the actual input
     CraftingInput input = getCraftingInputFromActualInput(this.craftingInputList);
-    // TutorialMod.LOGGER.debug("input: {}", input.items());
+    // ModernUtils.LOGGER.debug("input: {}", input.items());
 
     // Get the remaining items
     NonNullList<ItemStack> remainingItems = this.recipe.baseRecipe.getRemainingItems(input);
@@ -852,9 +852,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle remaining items
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 0 ? this.inputSlots : this.outputSlots;
-    // TutorialMod.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
+    // ModernUtils.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
     for (ItemStack remainingItem : remainingItems) {
-      // TutorialMod.LOGGER.debug("remainingItem: {}", remainingItem);
+      // ModernUtils.LOGGER.debug("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
       if (remainingItem.isEmpty())
         continue;
