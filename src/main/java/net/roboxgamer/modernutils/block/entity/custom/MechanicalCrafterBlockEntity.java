@@ -132,8 +132,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle sideState
     sideState = getSideState(side);
     switch (sideState){
-      case INPUT -> this.importDirections.put(sideDir,true);
-      case OUTPUT -> this.exportDirections.put(sideDir,true);
+      case INPUT -> {
+        this.importDirections.put(sideDir, true);
+        this.exportDirections.put(sideDir, false);
+      }
+      case OUTPUT -> {
+        this.importDirections.put(sideDir, false);
+        this.exportDirections.put(sideDir, true);
+      }
       case BOTH -> {
         this.importDirections.put(sideDir,true);
         this.exportDirections.put(sideDir,true);
