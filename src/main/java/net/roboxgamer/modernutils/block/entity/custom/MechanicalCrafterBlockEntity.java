@@ -764,7 +764,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // If all ingredients were matched with input items, return true
     return true;
   }
-
+  
   private boolean canCraft() {
     // Check if we have necessary inputs and output space
     if (this.inputSlots.isCompletelyEmpty())
@@ -780,42 +780,72 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return false;
     // Get the list of ingredients from the recipe
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
-
+    
     // Make a copy of the input items to avoid modifying the actual input slots
     // directly
     List<ItemStack> input = this.inputSlots.getStacksCopy();
-
+    
     var validInput = inputCheck(input, ingredients);
     if (!validInput) {
       return false;
     }
-
-    // Now check if there is enough space in the output slots for the result
+    
+    // Create a simulated inventory for output slots
+    ItemStackHandler tempOutputSlots = new ItemStackHandler(this.outputSlots.getSlots());
+    copySlots(this.outputSlots, tempOutputSlots);
+    
+    // Attempt to place the main result in simulated output slots
     ItemStack result = this.result.copy();
-    int remainingCount = result.getCount();
-
-    for (int i = 0; i < this.outputSlots.getSlots(); i++) {
-      ItemStack outputSlot = this.outputSlots.getStackInSlot(i);
-
-      if (outputSlot.isEmpty() && !isSlotDisabled(i)) {
-        // If the output slot is empty, it can hold the full remaining count
-        remainingCount = 0;
-        break;
-      } else if (ItemStack.isSameItemSameComponents(outputSlot, result)) {
-        // If the output slot contains the same item, calculate the available space
-        int spaceAvailable = outputSlot.getMaxStackSize() - outputSlot.getCount();
-        remainingCount -= Math.min(remainingCount, spaceAvailable);
-
-        if (remainingCount <= 0) {
-          break;
-        }
+    if (!tryFitInSlots(result, tempOutputSlots)) return false;
+    
+    ItemStackHandler tempInputSlots = new ItemStackHandler(this.inputSlots.getSlots());
+    copySlots(this.inputSlots, tempInputSlots);
+    
+    // Create a simulated inventory for remaining items
+    ItemStackHandler tempToPlaceIn = this.remainItemToggleValue == 0 ? tempInputSlots : tempOutputSlots;
+    
+    // Attempt to fit each remaining item in the chosen slots
+    NonNullList<ItemStack> remainingItems = this.recipe.getRemainingItems(getCraftingInputFromActualInput(this.inputSlots.getStacksCopy()));
+    for (ItemStack remaining : remainingItems) {
+      if (!tryFitInSlots(remaining, tempToPlaceIn)) return false;
+    }
+    
+    // If all items fit, crafting can proceed
+    return true;
+  }
+  
+  // Helper method to copy stacks to a temporary handler
+  private void copySlots(ItemStackHandler source, ItemStackHandler destination) {
+    for (int i = 0; i < source.getSlots(); i++) {
+      destination.setStackInSlot(i, source.getStackInSlot(i).copy());
+    }
+  }
+  
+  // Helper method to check if an item can fit in the given slots
+  private boolean tryFitInSlots(ItemStack stack, ItemStackHandler slots) {
+    if (stack.isEmpty()) return true;
+    
+    int remainingCount = stack.getCount();
+    
+    for (int i = 0; i < slots.getSlots(); i++) {
+      ItemStack slotStack = slots.getStackInSlot(i);
+      if (isSlotDisabled(i)) continue;
+      if (slotStack.isEmpty()) {
+        
+        int placeableAmount = Math.min(stack.getMaxStackSize(), remainingCount);
+        slots.setStackInSlot(i, new ItemStack(stack.getItem(), placeableAmount));
+        remainingCount -= placeableAmount;
+        if (remainingCount <= 0) return true;
+      } else if (ItemStack.isSameItemSameComponents(slotStack, stack)) {
+        int spaceAvailable = slotStack.getMaxStackSize() - slotStack.getCount();
+        int placeableAmount = Math.min(spaceAvailable, remainingCount);
+        slotStack.grow(placeableAmount);
+        remainingCount -= placeableAmount;
+        if (remainingCount <= 0) return true;
       }
     }
-
-    // If there's still remaining result that can't fit, crafting cannot proceed
+    
     return remainingCount <= 0;
-    // If all ingredients were matched and output slots can accommodate the result,
-    // return true
   }
 
   private void craft() {
@@ -865,6 +895,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (remainingItem.isEmpty())
         continue;
       for (int j = 0; j < toPlaceIn.getSlots(); j++) {
+        if (isSlotDisabled(j)) continue;
         ItemStack slot = toPlaceIn.getStackInSlot(j);
         if (ItemStack.isSameItemSameComponents(slot, remainingItem)) {
           int spaceAvailable = slot.getMaxStackSize() - slot.getCount();
