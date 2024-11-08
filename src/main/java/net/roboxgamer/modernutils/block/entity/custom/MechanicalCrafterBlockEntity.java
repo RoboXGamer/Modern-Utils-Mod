@@ -829,7 +829,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     for (int i = 0; i < slots.getSlots(); i++) {
       ItemStack slotStack = slots.getStackInSlot(i);
-      if (isSlotDisabled(i)) continue;
+      if (this.remainItemToggleValue==1 && isSlotDisabled(i)) continue;
       if (slotStack.isEmpty()) {
         
         int placeableAmount = Math.min(stack.getMaxStackSize(), remainingCount);
@@ -895,7 +895,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (remainingItem.isEmpty())
         continue;
       for (int j = 0; j < toPlaceIn.getSlots(); j++) {
-        if (isSlotDisabled(j)) continue;
+        if (this.remainItemToggleValue==1 && isSlotDisabled(j)) continue;
         ItemStack slot = toPlaceIn.getStackInSlot(j);
         if (ItemStack.isSameItemSameComponents(slot, remainingItem)) {
           int spaceAvailable = slot.getMaxStackSize() - slot.getCount();
