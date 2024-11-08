@@ -53,13 +53,11 @@ public class JEIPlugin implements IModPlugin {
   
   @Override
   public void registerRecipeCatalysts(@NotNull IRecipeCatalystRegistration registration) {
-    IModPlugin.super.registerRecipeCatalysts(registration);
     registration.addRecipeCatalyst(new ItemStack(ModBlocks.MECHANICAL_CRAFTER_BLOCK.get()), RecipeTypes.CRAFTING);
   }
   
   @Override
   public void registerRecipeTransferHandlers(@NotNull IRecipeTransferRegistration registration) {
-    IModPlugin.super.registerRecipeTransferHandlers(registration);
     registration.addRecipeTransferHandler(
         new MechanicalCrafterRecipeTransferHandler(registration.getTransferHelper())
         ,RecipeTypes.CRAFTING);
@@ -68,7 +66,6 @@ public class JEIPlugin implements IModPlugin {
   
   @Override
   public void registerGuiHandlers(@NotNull IGuiHandlerRegistration registration) {
-    IModPlugin.super.registerGuiHandlers(registration);
     registration.addGhostIngredientHandler(
         MechanicalCrafterScreen.class,MechanicalCrafterRecipeTransferHandler.GHOST_INGREDIENT_HANDLER
     );
