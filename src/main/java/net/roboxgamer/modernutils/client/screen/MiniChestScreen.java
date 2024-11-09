@@ -33,7 +33,7 @@ public class MiniChestScreen extends AbstractContainerScreen<MiniChestMenu> {
     super(menu,playerInv,title);
     this.position = menu.getBlockEntity().getBlockPos();
     this.imageWidth = 176;
-    this.imageHeight = 222;
+    this.imageHeight = 166;
     this.inventoryLabelY = this.imageHeight - 92;
   }
   

@@ -40,7 +40,7 @@ public class MiniChestMenu extends AbstractContainerMenu {
   
   
   private void createPlayerInventory(@NotNull Inventory playerInv) {
-    var playerInvYStart = 140;
+    var playerInvYStart = 84;
     for (int row = 0; row < 3; ++row) {
       for (int col = 0; col < 9; ++col) {
         this.addSlot(new Slot(playerInv, col + row * 9 + 9, 8 + col * 18, playerInvYStart + row * 18));
@@ -49,7 +49,7 @@ public class MiniChestMenu extends AbstractContainerMenu {
   }
   
   private void createPlayerHotbar(@NotNull Inventory playerInv) {
-    var hotbarYStart = 198;
+    var hotbarYStart = 142;
     for (int col = 0; col < 9; ++col) {
       this.addSlot(new Slot(playerInv, col, 8 + col * 18, hotbarYStart));
     }
@@ -59,7 +59,7 @@ public class MiniChestMenu extends AbstractContainerMenu {
     int centerX = 80;
     for (int i = 0; i < blockEntity.getInv().getSlots(); i++){
       this.addSlot(
-          new SlotItemHandler(blockEntity.getInv(), i, i * 18 + centerX, 54)
+          new SlotItemHandler(blockEntity.getInv(), i, i * 18 + centerX, 36)
       );
     }
   }
