@@ -20,16 +20,15 @@ public class ModBlockStateProvider extends BlockStateProvider {
     blockWithItem(ModBlocks.EXAMPLE_INVENTORY_BLOCK);
     blockWithItem(ModBlocks.BATTERY_BLOCK);
     
+    Block block = ModBlocks.MINI_CHEST_BLOCK.get();
+    ModelFile model = new ModelFile.UncheckedModelFile(modLoc("block/mini_chest_block"));
+    horizontalBlock(block, model);
+    simpleBlockItem(block,model);
+    
     blockWithItemWithModel(
         ModBlocks.MECHANICAL_CRAFTER_BLOCK,
         new ModelFile.UncheckedModelFile(modLoc("block/mechanical_crafter_block"))
     );
-    
-    blockWithItemWithModel(
-        ModBlocks.MINI_CHEST_BLOCK,
-        new ModelFile.UncheckedModelFile(modLoc("block/mini_chest_block"))
-    );
-    
   }
   private <T extends Block> void blockWithItem(DeferredBlock<T> block) {
     simpleBlockWithItem(block.get(), cubeAll(block.get()));
