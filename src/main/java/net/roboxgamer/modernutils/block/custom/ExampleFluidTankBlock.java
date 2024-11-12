@@ -62,7 +62,11 @@ public class ExampleFluidTankBlock extends Block implements EntityBlock {
                 player.drop(emptyBucket, false);
               }
             }
-            level.playSound(player, pos, bucketItem.content.getFluidType().getSound(player, level, pos, SoundActions.BUCKET_EMPTY), SoundSource.BLOCKS, 1.0F, 1.0F);
+          }
+          var sound = bucketItem.content.getFluidType().getSound(player, level, pos, SoundActions.BUCKET_EMPTY);
+          var soundSource = SoundSource.BLOCKS;
+          if (sound != null) {
+            level.playSound(player, pos, sound, soundSource, 1.0F, 1.0F);
           }
           return ItemInteractionResult.sidedSuccess(level.isClientSide);
         }
@@ -87,7 +91,11 @@ public class ExampleFluidTankBlock extends Block implements EntityBlock {
                 player.drop(filledBucket, false);
               }
             }
-            level.playSound(player, pos, fluidToExtract.getFluidType().getSound(player, level, pos, SoundActions.BUCKET_FILL), SoundSource.BLOCKS, 1.0F, 1.0F);
+          }
+          var sound = fluidToExtract.getFluidType().getSound(player, level, pos, SoundActions.BUCKET_FILL);
+          var soundSource = SoundSource.BLOCKS;
+          if (sound != null) {
+            level.playSound(player, pos, sound, soundSource, 1.0F, 1.0F);
           }
           return ItemInteractionResult.sidedSuccess(level.isClientSide);
         }
