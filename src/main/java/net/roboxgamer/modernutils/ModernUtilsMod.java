@@ -98,15 +98,23 @@ public class ModernUtilsMod {
     event.registerBlockEntity(
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
-        (be, side) -> be.getCapabilityHandler(side));
+        (be, side) -> be.getCapabilityHandler(side)
+    );
     event.registerBlockEntity(
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MINI_CHEST_BLOCK_ENTITY.get(),
-        (be, side) -> be.getInv());
+        (be, side) -> be.getInv()
+    );
     event.registerBlockEntity(
         Capabilities.EnergyStorage.BLOCK,
         ModBlockEntities.BATTERY_BLOCK_ENTITY.get(),
-        (be, side) -> be.getEnergyStorage());
+        (be, side) -> be.getEnergyStorage()
+    );
+    event.registerBlockEntity(
+        Capabilities.FluidHandler.BLOCK,
+        ModBlockEntities.EXAMPLE_FLUID_TANK_BLOCK_ENTITY.get(),
+        (be,side) -> be.getFluidHandler()
+    );
   }
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

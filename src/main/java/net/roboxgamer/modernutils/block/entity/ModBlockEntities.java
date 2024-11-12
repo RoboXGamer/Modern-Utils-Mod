@@ -7,11 +7,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.roboxgamer.modernutils.ModernUtilsMod;
 import net.roboxgamer.modernutils.block.ModBlocks;
-import net.roboxgamer.modernutils.block.entity.custom.BatteryBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.ExampleInventoryBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.*;
 
 import java.util.function.Supplier;
 
@@ -47,6 +43,12 @@ public class ModBlockEntities {
       BLOCK_ENTITIES.register("battery_block_entity", () -> BlockEntityType.Builder.
           of(BatteryBlockEntity::new,
              ModBlocks.BATTERY_BLOCK.get())
+          .build(null));
+  
+  public static final Supplier<BlockEntityType<ExampleFluidTankBlockEntity>> EXAMPLE_FLUID_TANK_BLOCK_ENTITY =
+      BLOCK_ENTITIES.register("example_fluid_tank_block_entity", () -> BlockEntityType.Builder.
+          of(ExampleFluidTankBlockEntity::new,
+             ModBlocks.EXAMPLE_FLUID_TANK_BLOCK.get())
           .build(null));
   
   

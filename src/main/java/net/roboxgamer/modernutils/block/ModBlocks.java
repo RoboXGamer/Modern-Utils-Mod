@@ -41,6 +41,9 @@ public class ModBlocks {
   public static final DeferredBlock<BatteryBlock> BATTERY_BLOCK = registerWIPBlock("battery_block", ()->
       new BatteryBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
   
+  public static final DeferredBlock<ExampleFluidTankBlock> EXAMPLE_FLUID_TANK_BLOCK = registerWIPBlock("example_fluid_tank_block", ()->
+      new ExampleFluidTankBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)));
+  
   private static <T extends Block> DeferredBlock<T> registerWIPBlock(String name, Supplier<T> block) {
     DeferredBlock<T> toReturn = WIP_BLOCKS.register(name, block);
     registerWIPBlockItem(name, toReturn);
