@@ -3,6 +3,7 @@ package net.roboxgamer.modernutils.datagen;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.*;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
@@ -21,9 +22,16 @@ public class ModRecipeProvider extends RecipeProvider implements IConditionBuild
   
   @Override
   protected void buildRecipes(@NotNull RecipeOutput pRecipeOutput) {
-    ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.MECHANICAL_CRAFTER_BLOCK.get()).requires(
-        Items.CRAFTING_TABLE).requires(Items.STONE).unlockedBy("has_crafting_table", has(Items.CRAFTING_TABLE)).save(
-        pRecipeOutput);
+    ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.MECHANICAL_CRAFTER_BLOCK.get())
+        .requires(Items.CRAFTING_TABLE)
+        .requires(Items.STONE)
+        .unlockedBy("has_crafting_table", has(Items.CRAFTING_TABLE))
+        .save(pRecipeOutput);
+    
+    ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.MINI_CHEST_BLOCK.get(),9)
+        .requires(Items.CHEST)
+        .unlockedBy("has_log",has(ItemTags.LOGS))
+        .save(pRecipeOutput);
   }
   
   protected static void oreSmelting(RecipeOutput pRecipeOutput, List<ItemLike> pIngredients, RecipeCategory pCategory, ItemLike pResult, float pExperience, int pCookingTIme, String pGroup) {
