@@ -7,15 +7,19 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
 import net.roboxgamer.modernutils.ModernUtilsMod;
 import org.jetbrains.annotations.NotNull;
 
 public class ExtendedButton extends AbstractWidget {
   
   private final String name;
-  private final Button.OnPress onPress;
+  private final OnPressExtended onPress;
   private final WidgetPosition position;
   private final boolean icon;
+  private final Player player;
   private Button button;
   
   // Enum for predefined positions
@@ -23,13 +27,18 @@ public class ExtendedButton extends AbstractWidget {
     TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT,NONE
   }
   
+  public interface OnPressExtended {
+    void onPress(Button button, ClickAction clickType, double mouseX, double mouseY);
+  }
+  
   // Constructor
-  public ExtendedButton(String name, int width, int height, Component text, boolean icon, WidgetPosition position, Button.OnPress onPress) {
+  public ExtendedButton(String name, int width, int height, Component text, boolean icon, WidgetPosition position, OnPressExtended onPress, Player player) {
     super(0, 0, width, height, text);  // Super constructor for AbstractWidget
     this.name = name;
     this.onPress = onPress;
     this.position = position;
     this.icon = icon;
+    this.player = player;
     
     // Set the position of the button based on enum
     this.setPosition();
@@ -71,11 +80,13 @@ public class ExtendedButton extends AbstractWidget {
   
   // Log button click and execute the onPress action
   @Override
-  public boolean mouseClicked(double mouseX, double mouseY, int button) {
+  public boolean mouseClicked(double mouseX, double mouseY, int clickAction) {
     if (this.isHovered()) {
       ModernUtilsMod.LOGGER.debug("Button clicked: {}", this.name);
-      this.button = Button.builder(Component.nullToEmpty(this.name), this.onPress).size(this.width, this.height).build();
-      this.onPress.onPress(this.button);
+      this.button = Button.builder(getMessage(), Button::onPress)
+          .size(this.width, this.height).build();
+      this.onPress.onPress(this.button, ClickAction.values()[clickAction], mouseX, mouseY );
+      this.player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.4F, 1.0F);
       return true;
     }
     return false;
@@ -118,6 +129,9 @@ public class ExtendedButton extends AbstractWidget {
     Component msg = this.getMessage();
     if (this.button != null){
       msg = this.button.getMessage();
+    }
+    if (msg.equals(Component.empty())){
+      return;
     }
     guiGraphics.renderTooltip(Minecraft.getInstance().font,msg,mouseX,mouseY);
   }

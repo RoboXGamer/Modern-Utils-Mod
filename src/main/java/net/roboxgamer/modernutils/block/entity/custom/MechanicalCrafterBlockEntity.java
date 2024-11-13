@@ -1,7 +1,9 @@
 package net.roboxgamer.modernutils.block.entity.custom;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -19,6 +21,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -119,14 +122,28 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return sideDir;
   }
   
-  public void handleSideBtnClick(@NotNull Constants.Sides side, Button button) {
+  public void handleSideBtnClick(@NotNull Constants.Sides side, Button button, ClickAction clickAction) {
     Direction sideDir = getRelativeDirection(side);
-    
   //  Cycle through the side states
     Constants.SideState sideState = getSideState(side);
     int currentState = sideState.ordinal();
     int nextState = (currentState + 1) % Constants.SideState.values().length;
-    this.sideBtnStates.put(side, Constants.SideState.values()[nextState]);
+    
+    // Check if the Shift key is held down
+    long window = Minecraft.getInstance().getWindow().getWindow();
+    boolean isShiftPressed = InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT)
+        || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT);
+    
+    if (isShiftPressed) {
+      // Handle shift + left-click logic here
+      sideState = Constants.SideState.NONE;
+      this.sideBtnStates.put(side, sideState);
+    }else{
+      if (clickAction != null && clickAction.equals(ClickAction.SECONDARY)) {
+        nextState = (currentState - 1) % Constants.SideState.values().length;
+      }
+      this.sideBtnStates.put(side, Constants.SideState.values()[nextState]);
+    }
     
     
     // Handle sideState
@@ -157,7 +174,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     setChanged();
     if (level != null && level.isClientSide()) {
       PacketDistributor.sendToServer(
-          new SideStatePayload(side, sideState, this.getBlockPos())
+          new SideStatePayload(side, clickAction, this.getBlockPos())
       );
     }
   }

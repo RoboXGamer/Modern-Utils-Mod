@@ -1,6 +1,7 @@
 package net.roboxgamer.modernutils.network;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -83,12 +84,12 @@ public class ServerPayloadHandler {
   
   public static void handleData(SideStatePayload payload, final IPayloadContext context) {
     Constants.Sides side = payload.side();
-    Constants.SideState sideState = payload.sideState();
+    ClickAction clickAction = payload.clickAction();
     BlockPos blockPos = payload.blockPos();
     ModernUtilsMod.LOGGER.debug("Server received sideStatePayload: {}", payload);
     var blockEntity = context.player().level().getBlockEntity(blockPos);
     if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-      be.handleSideBtnClick(side,null);
+      be.handleSideBtnClick(side, null, clickAction);
     }
   }
 }

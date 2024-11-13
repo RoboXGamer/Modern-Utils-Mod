@@ -16,7 +16,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.modernutils.ModernUtilsMod;
-import net.roboxgamer.modernutils.block.ModBlocks;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.modernutils.item.ModItems;
 import net.roboxgamer.modernutils.menu.MechanicalCrafterMenu;
@@ -29,6 +28,7 @@ import net.roboxgamer.modernutils.util.RedstoneManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
@@ -61,12 +61,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   //private int leftPos, topPos;
   
   //Widgets
-  private Button button;
+  private Button remainingToggleBtn;
   private ImageButton redstoneModeButton;
   private AnimatedTab SideConfigTab;
-  private Button autoImportBtn;
+  private ExtendedButton autoImportBtn;
   private ExtendedButton sideConfigBtn;
-  private Button autoExportBtn;
+  private ExtendedButton autoExportBtn;
   private ExtendedButton upSideBtn;
   private ExtendedButton downSideBtn;
   private ExtendedButton leftSideBtn;
@@ -107,7 +107,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     
     //  Widgets to add!
     
-    this.button = addRenderableWidget(
+    this.remainingToggleBtn = addRenderableWidget(
         new ImageButton(this.leftPos + this.imageWidth - 56,this.topPos + 34,20,20,
                         new WidgetSprites(
                             ModernUtilsMod.location("toggle_remain_btn"),
@@ -116,7 +116,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     ),this::handleButtonClick,BUTTON_TEXT)
             );
     var remainItemToggleValue = this.blockEntity.getRemainItemToggleDisplayValue();
-    this.button.setTooltip(
+    this.remainingToggleBtn.setTooltip(
         Tooltip.create(
             Component.literal(
                 String.format("Remaining Items [%s]", remainItemToggleValue)
@@ -152,9 +152,10 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Settings"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.BOTTOM_LEFT,
-        button -> {
+        (button1, clickAction, mouseX, mouseY) -> {
           SideConfigTab.toggleOpen();
-        }
+        },
+        this.player
     ){
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
@@ -174,7 +175,29 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     
     addRenderableWidget(this.sideConfigBtn);
     
-    this.autoImportBtn = Button.builder(Component.empty(), this::handleAutoImportButtonClick).build();
+    
+    this.autoImportBtn = new ExtendedButton(
+        "AutoImportBtn",
+        24, 24,
+        Component.empty(),
+        true,  // Optional icon
+        ExtendedButton.WidgetPosition.NONE,
+        (button, clickAction, mouseX, mouseY) -> this.handleAutoImportButtonClick(button),
+        this.player
+    ){
+      @Override
+      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
+      //  Switch between two textures based on the state of the button
+        boolean state = getAutoImportState();
+        if (state) {
+          ResourceLocation SPRITE_AUTO_IMPORT_ON = ModernUtilsMod.location("auto_import_on");
+          guiGraphics.blitSprite(SPRITE_AUTO_IMPORT_ON, this.getX(), this.getY(), this.width, this.height);
+        } else {
+          ResourceLocation SPRITE_AUTO_IMPORT_OFF = ModernUtilsMod.location("auto_import_off");
+          guiGraphics.blitSprite(SPRITE_AUTO_IMPORT_OFF, this.getX(), this.getY(), this.width, this.height);
+        }
+      }
+    };
     updateAutoImportButtonTooltip();
     SideConfigTab.addChild(this.autoImportBtn);
     
@@ -184,27 +207,39 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Up Side"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.NONE,
-        (button) -> this.blockEntity.handleSideBtnClick(Constants.Sides.UP, button)
+        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.UP, button,clickAction),
+        this.player
     ){
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        float scale = 1.15f;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-        
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(
-            ModBlocks.MECHANICAL_CRAFTER_BLOCK.get().asItem().getDefaultInstance(),
-            0,
-            0
-        );
-        guiGraphics.pose().popPose();
+        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.UP);
       }
     };
     SideConfigTab.addChild(this.upSideBtn);
     
-    this.autoExportBtn = Button.builder(Component.empty(), this::handleAutoExportButtonClick).build();
+    
+    this.autoExportBtn = new ExtendedButton(
+        "AutoExportBtn",
+        24, 24,
+        Component.empty(),
+        true,  // Optional icon
+        ExtendedButton.WidgetPosition.NONE,
+        (button, clickAction, mouseX, mouseY) -> this.handleAutoExportButtonClick(button),
+        this.player
+    ){
+      @Override
+      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
+        //  Switch between two textures based on the state of the button
+        boolean state = getAutoExportState();
+        if (state) {
+          ResourceLocation SPRITE_AUTO_EXPORT_ON = ModernUtilsMod.location("auto_export_on");
+          guiGraphics.blitSprite(SPRITE_AUTO_EXPORT_ON, this.getX(), this.getY(), this.width, this.height);
+        } else {
+          ResourceLocation SPRITE_AUTO_EXPORT_OFF = ModernUtilsMod.location("auto_export_off");
+          guiGraphics.blitSprite(SPRITE_AUTO_EXPORT_OFF, this.getX(), this.getY(), this.width, this.height);
+        }
+      }
+    };
     updateAutoExportButtonTooltip();
     SideConfigTab.addChild(this.autoExportBtn);
     
@@ -214,22 +249,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Left Side"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.NONE,
-        (button) -> this.blockEntity.handleSideBtnClick(Constants.Sides.LEFT, button)
+        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.LEFT, button,clickAction),
+        this.player
     ){
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        float scale = 1.15f;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-        
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(
-            ModBlocks.MECHANICAL_CRAFTER_BLOCK.get().asItem().getDefaultInstance(),
-            0,
-            0
-        );
-        guiGraphics.pose().popPose();
+        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.LEFT);
       }
     };
     SideConfigTab.addChild(this.leftSideBtn);
@@ -240,22 +265,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Front Side"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.NONE,
-        (button) -> this.blockEntity.handleSideBtnClick(Constants.Sides.FRONT, button)
+        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.FRONT, button,clickAction),
+        this.player
     ) {
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        float scale = 1.15f;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-        
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(
-            ModBlocks.MECHANICAL_CRAFTER_BLOCK.get().asItem().getDefaultInstance(),
-            0,
-            0
-        );
-        guiGraphics.pose().popPose();
+        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.FRONT);
       }
     };
     SideConfigTab.addChild(this.frontSideBtn);
@@ -266,22 +281,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Right Side"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.NONE,
-        (button) -> this.blockEntity.handleSideBtnClick(Constants.Sides.RIGHT, button)
+        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.RIGHT, button,clickAction),
+        this.player
     ){
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        float scale = 1.15f;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-        
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(
-            ModBlocks.MECHANICAL_CRAFTER_BLOCK.get().asItem().getDefaultInstance(),
-            0,
-            0
-        );
-        guiGraphics.pose().popPose();
+        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.RIGHT);
       }
     };
     SideConfigTab.addChild(this.rightSideBtn);
@@ -292,22 +297,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Back Side"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.NONE,
-        (button) -> this.blockEntity.handleSideBtnClick(Constants.Sides.BACK, button)
+        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.BACK, button,clickAction),
+        this.player
     ){
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        float scale = 1.15f;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-        
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(
-            ModBlocks.MECHANICAL_CRAFTER_BLOCK.get().asItem().getDefaultInstance(),
-            0,
-            0
-        );
-        guiGraphics.pose().popPose();
+        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.BACK);
       }
     };
     SideConfigTab.addChild(this.backSideBtn);
@@ -318,22 +313,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         Component.literal("Down Side"),
         true,  // Optional icon
         ExtendedButton.WidgetPosition.NONE,
-        (button) -> this.blockEntity.handleSideBtnClick(Constants.Sides.DOWN, button)
+        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.DOWN, button,clickAction),
+        this.player
     ){
       @Override
       public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        float scale = 1.15f;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-        
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(
-            ModBlocks.MECHANICAL_CRAFTER_BLOCK.get().asItem().getDefaultInstance(),
-            0,
-            0
-        );
-        guiGraphics.pose().popPose();
+        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.DOWN);
       }
     };
     SideConfigTab.addChild(this.downSideBtn);
@@ -349,11 +334,56 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     updateSideBtnsTooltip();
   }
   
+  private boolean getAutoImportState() {
+    return this.blockEntity.isAutoImportEnabled();
+  }
+  
+  private boolean getAutoExportState() {
+    return this.blockEntity.isAutoExportEnabled();
+  }
+  
   private void updateSideBtnsTooltip() {
     for (Constants.Sides side : Constants.Sides.values()) {
       var sideState = this.blockEntity.getSideState(side);
       this.sideBtns.get(side.ordinal()).setMessage(Component.literal(String.format("%s Side,State: %s",side,sideState)));
     }
+  }
+  
+  private void renderSideBtnBackgroundAndIcon(GuiGraphics guiGraphics, ExtendedButton button, Constants.Sides side) {
+    // Get the current mode of the side
+    Constants.SideState sideMode = this.blockEntity.getSideState(side);
+    
+    // Determine the background color based on the mode
+    int backgroundColor = Constants.getColorForMode(sideMode);
+    int margin = 2;
+    // Render the background color
+    guiGraphics.fill(
+        button.getX() + margin,
+        button.getY() + margin,
+        button.getX() + button.getWidth() - margin,
+        button.getY() + button.getHeight() - margin,
+        backgroundColor
+    );
+    
+    // Render the icon with scaling and centering
+    float scale = 1.15f;
+    float offset = (button.getWidth() - (16 * scale)) / 2;
+    
+    guiGraphics.pose().pushPose();
+    guiGraphics.pose().translate(button.getX() + offset, button.getY() + offset, 0);
+    guiGraphics.pose().scale(scale, scale, 1);
+    ItemStack item = ItemStack.EMPTY;
+    var pos = this.blockEntity.getBlockPos().relative(this.blockEntity.getRelativeDirection(side));
+    var state = Objects.requireNonNull(this.blockEntity.getLevel()).getBlockState(pos);
+    if (state.hasBlockEntity() && this.blockEntity.getLevel().isLoaded(pos)){
+      item = state.getBlock().asItem().getDefaultInstance();
+    }
+    guiGraphics.renderFakeItem(
+        item,
+        0,
+        0
+    );
+    guiGraphics.pose().popPose();
   }
   
   
@@ -404,7 +434,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     ModernUtilsMod.LOGGER.debug("Toggled remainItemToggleValue to {}", value);
     PacketDistributor.sendToServer(new RemainItemTogglePayload(value, this.blockEntity.getBlockPos()));
     var remainItemToggleValue = this.blockEntity.getRemainItemToggleDisplayValue();
-    this.button.setTooltip(
+    this.remainingToggleBtn.setTooltip(
         Tooltip.create(
             Component.literal(
                 String.format("Remaining Items [%s]", remainItemToggleValue)
