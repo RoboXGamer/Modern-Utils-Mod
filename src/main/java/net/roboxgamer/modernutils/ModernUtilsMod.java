@@ -67,6 +67,7 @@ public class ModernUtilsMod {
 
     modEventBus.addListener(this::registerCapabilities);
     modEventBus.addListener(this::registerScreens);
+    modEventBus.addListener(this::registerPackets);
 
     // Register the item to a creative tab
     modEventBus.addListener(this::addCreative);
@@ -94,6 +95,51 @@ public class ModernUtilsMod {
 
   }
 
+  private void registerPackets(final RegisterPayloadHandlersEvent event) {
+    // Sets the current network version
+    final PayloadRegistrar registrar = event.registrar("1");
+    registrar.playBidirectional(
+            RemainItemTogglePayload.TYPE,
+            RemainItemTogglePayload.STREAM_CODEC,
+            new DirectionalPayloadHandler<>(
+                    ClientPayloadHandler::handleData,
+                    ServerPayloadHandler::handleData));
+    registrar.playBidirectional(
+            ItemStackPayload.TYPE,
+            ItemStackPayload.STREAM_CODEC,
+            new DirectionalPayloadHandler<>(
+                    ClientPayloadHandler::handleData,
+                    ServerPayloadHandler::handleData));
+    registrar.playBidirectional(
+            GhostSlotTransferPayload.TYPE,
+            GhostSlotTransferPayload.STREAM_CODEC,
+            new DirectionalPayloadHandler<>(
+                    ClientPayloadHandler::handleData,
+                    ServerPayloadHandler::handleData));
+    registrar.playBidirectional(
+            RedstoneModePayload.TYPE,
+            RedstoneModePayload.STREAM_CODEC,
+            new DirectionalPayloadHandler<>(
+                    ClientPayloadHandler::handleData,
+                    ServerPayloadHandler::handleData));
+    registrar.playBidirectional(
+            SlotStatePayload.TYPE,
+            SlotStatePayload.STREAM_CODEC,
+            new DirectionalPayloadHandler<>(
+                    ClientPayloadHandler::handleData,
+                    ServerPayloadHandler::handleData
+            )
+    );
+    registrar.playBidirectional(
+            SideStatePayload.TYPE,
+            SideStatePayload.STREAM_CODEC,
+            new DirectionalPayloadHandler<>(
+                    ClientPayloadHandler::handleData,
+                    ServerPayloadHandler::handleData
+            )
+    );
+  }
+
   private void registerCapabilities(RegisterCapabilitiesEvent event) {
     event.registerBlockEntity(
         Capabilities.ItemHandler.BLOCK,
@@ -118,52 +164,6 @@ public class ModernUtilsMod {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
       event.registerBlockEntityRenderer(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
           MechanicalCrafterBlockEntityRenderer::new);
-    }
-
-    @SubscribeEvent
-    public static void register(final RegisterPayloadHandlersEvent event) {
-      // Sets the current network version
-      final PayloadRegistrar registrar = event.registrar("1");
-      registrar.playBidirectional(
-          RemainItemTogglePayload.TYPE,
-          RemainItemTogglePayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
-              ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData));
-      registrar.playBidirectional(
-          ItemStackPayload.TYPE,
-          ItemStackPayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
-              ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData));
-      registrar.playBidirectional(
-          GhostSlotTransferPayload.TYPE,
-          GhostSlotTransferPayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
-              ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData));
-      registrar.playBidirectional(
-          RedstoneModePayload.TYPE,
-          RedstoneModePayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
-              ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData));
-      registrar.playBidirectional(
-          SlotStatePayload.TYPE,
-          SlotStatePayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
-              ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData
-          )
-      );
-      registrar.playBidirectional(
-          SideStatePayload.TYPE,
-          SideStatePayload.STREAM_CODEC,
-          new DirectionalPayloadHandler<>(
-              ClientPayloadHandler::handleData,
-              ServerPayloadHandler::handleData
-          )
-      );
     }
     
   }
