@@ -17,8 +17,6 @@ public class Constants {
       BookCloningRecipe.class,
       DecoratedPotRecipe.class,
       ShieldDecorationRecipe.class,
-      ShulkerBoxColoring.class, // TODO: Needs more research
-      SuspiciousStewRecipe.class // TODO: Needs more research
   };
   
   public enum RecipeTypes {
@@ -40,5 +38,14 @@ public class Constants {
     INPUT,
     OUTPUT,
     BOTH,
+  }
+  
+  public static int getColorForMode(Constants.SideState mode) {
+    return switch (mode) {
+      case INPUT -> 0xAAFF0000;  // Red with some transparency
+      case OUTPUT -> 0xAA0000FF; // Blue with some transparency
+      case BOTH -> 0xAA800080;   // Purple with some transparency
+      default -> 0xAA555555;     // Grey with some transparency
+    };
   }
 }

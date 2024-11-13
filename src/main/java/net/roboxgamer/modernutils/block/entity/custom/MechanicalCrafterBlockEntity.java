@@ -663,7 +663,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return null;
     }
     // Special types of recipes
-    if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.SPECIAL)){
+    if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.SPECIAL) || isSpecialRecipe(recipeToReturn)){
       NonNullList<Ingredient> ingredients = this.craftingSlots.getIngredientsList();
       recipeToReturn.setIngredients(ingredients);
     }
@@ -681,6 +681,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       if (entry.isInstance(value)) return true;
     }
     return false;
+  }
+  
+  private boolean isSpecialRecipe(CustomRecipeExtender<?> recipe) {
+    return recipe.getIngredients().isEmpty();
   }
   
   private CraftingInput getCraftingInputFromActualInput(List<ItemStack> items) {
