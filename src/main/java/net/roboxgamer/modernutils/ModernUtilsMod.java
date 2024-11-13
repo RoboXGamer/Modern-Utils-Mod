@@ -112,11 +112,7 @@ public class ModernUtilsMod {
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
   public static class ClientModEvents {
     @SubscribeEvent
-    public static void onClientSetup(@NotNull FMLClientSetupEvent event) {
-      event.enqueueWork(() -> {
-        Minecraft.getInstance().getWindow().setWindowed(1280, 720);
-      });
-    }
+    public static void onClientSetup(@NotNull FMLClientSetupEvent event) {}
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
