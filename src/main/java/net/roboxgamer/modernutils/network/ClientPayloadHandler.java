@@ -41,6 +41,10 @@ public class ClientPayloadHandler {
   }
   
   public static void handleData(SideStatePayload payload, final IPayloadContext context) {
-    ModernUtilsMod.LOGGER.debug("Client received sideStatePayload: {}", payload);
+    //ModernUtilsMod.LOGGER.debug("Client received sideStatePayload: {}", payload);
+    var blockEntity = context.player().level().getBlockEntity(payload.blockPos());
+    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
+      be.setSideBtnState(payload.side(),payload.sideState());
+    }
   }
 }

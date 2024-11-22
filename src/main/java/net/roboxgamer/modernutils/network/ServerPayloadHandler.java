@@ -83,13 +83,6 @@ public class ServerPayloadHandler {
   }
   
   public static void handleData(SideStatePayload payload, final IPayloadContext context) {
-    Constants.Sides side = payload.side();
-    ClickAction clickAction = payload.clickAction();
-    BlockPos blockPos = payload.blockPos();
-    ModernUtilsMod.LOGGER.debug("Server received sideStatePayload: {}", payload);
-    var blockEntity = context.player().level().getBlockEntity(blockPos);
-    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-      be.handleSideBtnClick(side, null, clickAction);
-    }
+  //  
   }
 }

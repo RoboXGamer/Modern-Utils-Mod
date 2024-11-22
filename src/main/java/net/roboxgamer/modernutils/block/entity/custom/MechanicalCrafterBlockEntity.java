@@ -40,7 +40,6 @@ import net.roboxgamer.modernutils.block.custom.MechanicalCrafterBlock;
 import net.roboxgamer.modernutils.block.entity.ModBlockEntities;
 import net.roboxgamer.modernutils.menu.MechanicalCrafterMenu;
 import net.roboxgamer.modernutils.network.ItemStackPayload;
-import net.roboxgamer.modernutils.network.SideStatePayload;
 import net.roboxgamer.modernutils.network.SlotStatePayload;
 import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.CustomRecipeExtender;
@@ -122,25 +121,24 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return sideDir;
   }
   
-  public void handleSideBtnClick(@NotNull Constants.Sides side, Button button, ClickAction clickAction) {
+  public void handleSideBtnClick(@NotNull Constants.Sides side, boolean isShiftPressed, ClickAction clickAction) {
     Direction sideDir = getRelativeDirection(side);
-  //  Cycle through the side states
     Constants.SideState sideState = getSideState(side);
     int currentState = sideState.ordinal();
-    int nextState = (currentState + 1) % Constants.SideState.values().length;
-    
-    // Check if the Shift key is held down
-    long window = Minecraft.getInstance().getWindow().getWindow();
-    boolean isShiftPressed = InputConstants.isKeyDown(window, InputConstants.KEY_LSHIFT)
-        || InputConstants.isKeyDown(window, InputConstants.KEY_RSHIFT);
+    int totalStates = Constants.SideState.values().length;
     
     if (isShiftPressed) {
       // Handle shift + left-click logic here
       sideState = Constants.SideState.NONE;
       this.sideBtnStates.put(side, sideState);
-    }else{
+    } else {
+      int nextState;
       if (clickAction != null && clickAction.equals(ClickAction.SECONDARY)) {
-        nextState = (currentState - 1) % Constants.SideState.values().length;
+        // For reverse cycling, handle negative numbers
+        nextState = (currentState - 1 + totalStates) % totalStates;
+      } else {
+        // Forward cycling
+        nextState = (currentState + 1) % totalStates;
       }
       this.sideBtnStates.put(side, Constants.SideState.values()[nextState]);
     }
@@ -166,17 +164,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         this.exportDirections.put(sideDir,false);
       }
     }
-    if (button != null) {
-      button.setMessage(Component.literal(String.format("%s Side,State: %s",side,sideState)));
-    }
     
     ModernUtilsMod.LOGGER.debug("Side {} State Changed to {}", side, getSideState(side));
     setChanged();
-    if (level != null && level.isClientSide()) {
-      PacketDistributor.sendToServer(
-          new SideStatePayload(side, clickAction, this.getBlockPos())
-      );
-    }
   }
   
   public Constants.SideState getSideState(Constants.Sides side){
@@ -226,6 +216,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   public boolean isAutoExportEnabled() {
     return this.autoExportEnabled;
+  }
+  
+  public void setSideBtnState(Constants.@NotNull Sides side,Constants.SideState state) {
+    this.sideBtnStates.put(side, state);
   }
   
   public class CustomItemStackHandler extends ItemStackHandler {
@@ -1111,8 +1105,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       Direction sideDir = getRelativeDirection(side);
       
       switch (sideState){
-        case INPUT -> this.importDirections.put(sideDir,true);
-        case OUTPUT -> this.exportDirections.put(sideDir,true);
+        case INPUT -> {
+          this.importDirections.put(sideDir,true);
+          this.exportDirections.put(sideDir,false);
+        }
+        case OUTPUT -> {
+          this.importDirections.put(sideDir,false);
+          this.exportDirections.put(sideDir,true);
+        }
         case BOTH -> {
           this.importDirections.put(sideDir,true);
           this.exportDirections.put(sideDir,true);

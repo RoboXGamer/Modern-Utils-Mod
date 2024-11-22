@@ -1,14 +1,19 @@
 package net.roboxgamer.modernutils.menu;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.modernutils.block.ModBlocks;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.modernutils.network.SideStatePayload;
+import net.roboxgamer.modernutils.util.Constants;
+import net.roboxgamer.modernutils.util.PackedButtonData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -197,5 +202,16 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     this.containerData.set(outputSlot.getSlotIndex(), enabled ? 0 : 1);
     this.blockEntity.setSlotState(outputSlot.getSlotIndex(), enabled ? 0 : 1);
     this.broadcastChanges();
+  }
+  
+  @Override
+  public boolean clickMenuButton(Player player, int id) {
+    PackedButtonData packedButtonData = PackedButtonData.fromId(id);
+    Constants.Sides side = packedButtonData.side();
+    this.blockEntity.handleSideBtnClick(side, packedButtonData.shifted(), packedButtonData.clickAction());
+    PacketDistributor.sendToPlayer((ServerPlayer) player,
+                                   new SideStatePayload(side, this.blockEntity.getSideState(side), this.blockEntity.getBlockPos())
+          );
+    return true;
   }
 }

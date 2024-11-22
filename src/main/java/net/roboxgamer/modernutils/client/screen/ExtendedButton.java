@@ -125,7 +125,7 @@ public class ExtendedButton extends AbstractWidget {
     }
   }
   
-  private void renderTooltip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
+  public void renderTooltip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
     Component msg = this.getMessage();
     if (this.button != null){
       msg = this.button.getMessage();

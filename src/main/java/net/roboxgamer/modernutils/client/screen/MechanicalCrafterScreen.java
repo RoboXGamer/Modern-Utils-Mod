@@ -27,8 +27,8 @@ import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.RedstoneManager;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
@@ -73,7 +73,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private ExtendedButton rightSideBtn;
   private ExtendedButton backSideBtn;
   private ExtendedButton frontSideBtn;
-  private ArrayList<ExtendedButton> sideBtns;
+  private Map<Constants.Sides, SideConfigButton> sideButtons = new HashMap<>();
   
   
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
@@ -172,7 +172,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         guiGraphics.pose().popPose();
       }
     };
-    
     addRenderableWidget(this.sideConfigBtn);
     
     
@@ -199,24 +198,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       }
     };
     updateAutoImportButtonTooltip();
-    SideConfigTab.addChild(this.autoImportBtn);
-    
-    this.upSideBtn = new ExtendedButton(
-        "UpSideBtn",
-        24, 24,
-        Component.literal("Up Side"),
-        true,  // Optional icon
-        ExtendedButton.WidgetPosition.NONE,
-        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.UP, button,clickAction),
-        this.player
-    ){
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.UP);
-      }
-    };
-    SideConfigTab.addChild(this.upSideBtn);
-    
     
     this.autoExportBtn = new ExtendedButton(
         "AutoExportBtn",
@@ -241,97 +222,39 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       }
     };
     updateAutoExportButtonTooltip();
+    
+    initSideButtons();
+    
+    this.upSideBtn = sideButtons.get(Constants.Sides.UP);
+    this.downSideBtn = sideButtons.get(Constants.Sides.DOWN);
+    this.leftSideBtn = sideButtons.get(Constants.Sides.LEFT);
+    this.rightSideBtn = sideButtons.get(Constants.Sides.RIGHT);
+    this.frontSideBtn = sideButtons.get(Constants.Sides.FRONT);
+    this.backSideBtn = sideButtons.get(Constants.Sides.BACK);
+    SideConfigTab.addChild(this.autoImportBtn);
+    SideConfigTab.addChild(this.upSideBtn);
     SideConfigTab.addChild(this.autoExportBtn);
-    
-    this.leftSideBtn = new ExtendedButton(
-        "LeftSideBtn",
-        24, 24,
-        Component.literal("Left Side"),
-        true,  // Optional icon
-        ExtendedButton.WidgetPosition.NONE,
-        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.LEFT, button,clickAction),
-        this.player
-    ){
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.LEFT);
-      }
-    };
     SideConfigTab.addChild(this.leftSideBtn);
-    
-    this.frontSideBtn = new ExtendedButton(
-        "FrontSideBtn",
-        24, 24,
-        Component.literal("Front Side"),
-        true,  // Optional icon
-        ExtendedButton.WidgetPosition.NONE,
-        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.FRONT, button,clickAction),
-        this.player
-    ) {
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.FRONT);
-      }
-    };
     SideConfigTab.addChild(this.frontSideBtn);
-    
-    this.rightSideBtn = new ExtendedButton(
-        "RightSideBtn",
-        24, 24,
-        Component.literal("Right Side"),
-        true,  // Optional icon
-        ExtendedButton.WidgetPosition.NONE,
-        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.RIGHT, button,clickAction),
-        this.player
-    ){
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.RIGHT);
-      }
-    };
     SideConfigTab.addChild(this.rightSideBtn);
-    
-    this.backSideBtn = new ExtendedButton(
-        "BackSideBtn",
-        24, 24,
-        Component.literal("Back Side"),
-        true,  // Optional icon
-        ExtendedButton.WidgetPosition.NONE,
-        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.BACK, button,clickAction),
-        this.player
-    ){
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.BACK);
-      }
-    };
     SideConfigTab.addChild(this.backSideBtn);
-    
-    this.downSideBtn = new ExtendedButton(
-        "DownSideBtn",
-        24, 24,
-        Component.literal("Down Side"),
-        true,  // Optional icon
-        ExtendedButton.WidgetPosition.NONE,
-        (button, clickAction, mouseX, mouseY) -> this.blockEntity.handleSideBtnClick(Constants.Sides.DOWN, button,clickAction),
-        this.player
-    ){
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
-        renderSideBtnBackgroundAndIcon(guiGraphics, extendedButton, Constants.Sides.DOWN);
-      }
-    };
     SideConfigTab.addChild(this.downSideBtn);
-    
-    this.sideBtns = new ArrayList<>();
-    this.sideBtns.add(this.upSideBtn);
-    this.sideBtns.add(this.downSideBtn);
-    this.sideBtns.add(this.leftSideBtn);
-    this.sideBtns.add(this.rightSideBtn);
-    this.sideBtns.add(this.backSideBtn);
-    this.sideBtns.add(this.frontSideBtn);
-    
-    updateSideBtnsTooltip();
+  }
+  
+  void initSideButtons() {
+    // Create buttons for all sides
+    for (Constants.Sides side : Constants.Sides.values()) {
+      String btnId = side.toString() + "SideBtn";
+      SideConfigButton button = new SideConfigButton(
+          btnId,
+          side,
+          this,
+          this.blockEntity,
+          this.player
+      );
+      // Store in our map for easy access
+      sideButtons.put(side, button);
+    }
   }
   
   private boolean getAutoImportState() {
@@ -341,51 +264,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private boolean getAutoExportState() {
     return this.blockEntity.isAutoExportEnabled();
   }
-  
-  private void updateSideBtnsTooltip() {
-    for (Constants.Sides side : Constants.Sides.values()) {
-      var sideState = this.blockEntity.getSideState(side);
-      this.sideBtns.get(side.ordinal()).setMessage(Component.literal(String.format("%s Side,State: %s",side,sideState)));
-    }
-  }
-  
-  private void renderSideBtnBackgroundAndIcon(GuiGraphics guiGraphics, ExtendedButton button, Constants.Sides side) {
-    // Get the current mode of the side
-    Constants.SideState sideMode = this.blockEntity.getSideState(side);
-    
-    // Determine the background color based on the mode
-    int backgroundColor = Constants.getColorForMode(sideMode);
-    int margin = 2;
-    // Render the background color
-    guiGraphics.fill(
-        button.getX() + margin,
-        button.getY() + margin,
-        button.getX() + button.getWidth() - margin,
-        button.getY() + button.getHeight() - margin,
-        backgroundColor
-    );
-    
-    // Render the icon with scaling and centering
-    float scale = 1.15f;
-    float offset = (button.getWidth() - (16 * scale)) / 2;
-    
-    guiGraphics.pose().pushPose();
-    guiGraphics.pose().translate(button.getX() + offset, button.getY() + offset, 0);
-    guiGraphics.pose().scale(scale, scale, 1);
-    ItemStack item = ItemStack.EMPTY;
-    var pos = this.blockEntity.getBlockPos().relative(this.blockEntity.getRelativeDirection(side));
-    var state = Objects.requireNonNull(this.blockEntity.getLevel()).getBlockState(pos);
-    if (state.hasBlockEntity() && this.blockEntity.getLevel().isLoaded(pos)){
-      item = state.getBlock().asItem().getDefaultInstance();
-    }
-    guiGraphics.renderFakeItem(
-        item,
-        0,
-        0
-    );
-    guiGraphics.pose().popPose();
-  }
-  
   
   private void handleAutoExportButtonClick(Button button) {
     this.blockEntity.autoExportBtnHandler();
