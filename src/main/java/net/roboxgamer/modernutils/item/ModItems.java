@@ -5,6 +5,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.roboxgamer.modernutils.ModernUtilsMod;
+import net.roboxgamer.modernutils.item.custom.KillRecorderItem;
 
 public class ModItems {
   public static final DeferredRegister.Items ITEMS =
@@ -14,6 +15,9 @@ public class ModItems {
       DeferredRegister.createItems(ModernUtilsMod.MODID);
 
   public static final DeferredItem<Item> EXAMPLE_ITEM = WIP_ITEMS.register("example_item",()-> new Item(new Item.Properties()));
+  
+  public static final DeferredItem<Item> KILL_RECORDER = ITEMS.register("kill_recorder", 
+      () -> new KillRecorderItem(new Item.Properties()));
 
   public static void register(IEventBus eventBus) {
     ITEMS.register(eventBus);
