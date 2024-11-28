@@ -28,7 +28,7 @@ public class ModEvents {
                         // Update kill data with entity name and XP
                         stack.update(
                             ModCustomDataComponents.KILL_DATA.get(),
-                            new KillData(killData.kills(), killData.isRecording(), killData.totalXp()),
+                            killData,
                             data -> data.addKill(killedEntity.getName().getString(), xpReward)
                         );
                     }
