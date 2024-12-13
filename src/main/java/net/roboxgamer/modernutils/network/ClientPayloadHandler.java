@@ -3,7 +3,6 @@ package net.roboxgamer.modernutils.network;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
-import net.roboxgamer.modernutils.ModernUtilsMod;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
 
 public class ClientPayloadHandler {
@@ -44,7 +43,7 @@ public class ClientPayloadHandler {
     //ModernUtilsMod.LOGGER.debug("Client received sideStatePayload: {}", payload);
     var blockEntity = context.player().level().getBlockEntity(payload.blockPos());
     if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-      be.setSideBtnState(payload.side(),payload.sideState());
+      be.getSideManager().setSideBtnState(payload.side(), payload.sideState());
     }
   }
 }

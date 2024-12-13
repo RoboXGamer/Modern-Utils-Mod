@@ -47,7 +47,7 @@ public class SideConfigButton extends ExtendedButton {
   @Override
   public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
     // Get the current mode of the side
-    Constants.SideState sideMode = this.blockEntity.getSideState(side);
+    Constants.SideState sideMode = this.blockEntity.getSideManager().getSideState(side);
     
     // Determine the background color based on the mode
     int backgroundColor = Constants.getColorForMode(sideMode);
@@ -69,7 +69,7 @@ public class SideConfigButton extends ExtendedButton {
     guiGraphics.pose().translate(this.getX() + offset, this.getY() + offset, 0);
     guiGraphics.pose().scale(scale, scale, 1);
     ItemStack item = ItemStack.EMPTY;
-    var pos = this.blockEntity.getBlockPos().relative(this.blockEntity.getRelativeDirection(side));
+    var pos = this.blockEntity.getBlockPos().relative(this.blockEntity.getSideManager().getRelativeDirection(side));
     var state = Objects.requireNonNull(this.blockEntity.getLevel()).getBlockState(pos);
     if (state.hasBlockEntity() && this.blockEntity.getLevel().isLoaded(pos)){
       item = state.getBlock().asItem().getDefaultInstance();
@@ -85,7 +85,7 @@ public class SideConfigButton extends ExtendedButton {
   @Override
   public void renderTooltip(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY) {
     if (blockEntity instanceof MechanicalCrafterBlockEntity mechanicalCrafter) {
-      Constants.SideState sideState = mechanicalCrafter.getSideState(side);
+      Constants.SideState sideState = mechanicalCrafter.getSideManager().getSideState(side);
       Component msg = Component.literal(String.format("%s Side, State: %s", side, sideState));
       guiGraphics.renderTooltip(Minecraft.getInstance().font, msg, mouseX, mouseY);
     }
@@ -97,7 +97,7 @@ public class SideConfigButton extends ExtendedButton {
   
   public Constants.SideState getSideState() {
     if (blockEntity instanceof MechanicalCrafterBlockEntity mechanicalCrafter) {
-      return mechanicalCrafter.getSideState(side);
+      return mechanicalCrafter.getSideManager().getSideState(side);
     }
     return Constants.SideState.NONE;
   }

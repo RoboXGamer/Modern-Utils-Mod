@@ -259,20 +259,20 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   }
   
   private boolean getAutoImportState() {
-    return this.blockEntity.isAutoImportEnabled();
+    return this.blockEntity.getSideManager().isAutoImportEnabled();
   }
   
   private boolean getAutoExportState() {
-    return this.blockEntity.isAutoExportEnabled();
+    return this.blockEntity.getSideManager().isAutoExportEnabled();
   }
   
   private void handleAutoExportButtonClick(Button button) {
-    this.blockEntity.autoExportBtnHandler();
+    this.blockEntity.getSideManager().autoExportBtnHandler();
     updateAutoExportButtonTooltip();
   }
   
   private void updateAutoExportButtonTooltip() {
-    this.autoExportBtn.setTooltip(Tooltip.create(blockEntity.isAutoExportEnabled() ? Component.literal("Disable Auto Export") : Component.literal("Enable Auto Export")));
+    this.autoExportBtn.setTooltip(Tooltip.create(getAutoExportState() ? Component.literal("Disable Auto Export") : Component.literal("Enable Auto Export")));
   }
   
   private WidgetSprites getRedstoneButtonSprites() {
@@ -293,12 +293,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   }
   
   private void handleAutoImportButtonClick(Button button) {
-    this.blockEntity.autoImportBtnHandler();
+    this.blockEntity.getSideManager().autoImportBtnHandler();
     updateAutoImportButtonTooltip();
   }
   
   private void updateAutoImportButtonTooltip() {
-    this.autoImportBtn.setTooltip(Tooltip.create(blockEntity.isAutoImportEnabled() ? Component.literal("Disable Auto Import") : Component.literal("Enable Auto Import")));
+    this.autoImportBtn.setTooltip(Tooltip.create(getAutoImportState() ? Component.literal("Disable Auto Import") : Component.literal("Enable Auto Import")));
   }
   
   private void updateRedstoneButtonTooltip() {

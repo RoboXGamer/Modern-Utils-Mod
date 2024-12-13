@@ -18,7 +18,6 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -32,17 +31,15 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.modernutils.ModernUtilsMod;
-import net.roboxgamer.modernutils.block.custom.MechanicalCrafterBlock;
 import net.roboxgamer.modernutils.block.entity.ModBlockEntities;
 import net.roboxgamer.modernutils.menu.MechanicalCrafterMenu;
 import net.roboxgamer.modernutils.network.ItemStackPayload;
 import net.roboxgamer.modernutils.network.SlotStatePayload;
-import net.roboxgamer.modernutils.util.Constants;
-import net.roboxgamer.modernutils.util.CustomItemStackHandler;
-import net.roboxgamer.modernutils.util.CustomRecipeExtender;
-import net.roboxgamer.modernutils.util.RedstoneManager;
+import net.roboxgamer.modernutils.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import net.roboxgamer.modernutils.util.Constants.IRedstoneConfigurable;
+import net.roboxgamer.modernutils.util.Constants.ISidedMachine;
 
 import java.util.*;
 import java.util.List;
@@ -52,7 +49,7 @@ import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_BLACK
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_SPECIAL_RECIPES;
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
-public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider, Constants.IRedstoneConfigurable {
+public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider, IRedstoneConfigurable, ISidedMachine {
   public Component TITLE = Component.translatable("block.modernutils.mechanical_crafter_block");
   
   public static final int INPUT_SLOTS_COUNT = 9;
@@ -67,106 +64,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
   
-  private Boolean autoImportEnabled = true;
-  private Boolean autoExportEnabled = false;
-  
-  private final Map<Direction, Boolean> importDirections = new HashMap<>(
-      Map.of(
-          Direction.NORTH, true,
-          Direction.SOUTH, true,
-          Direction.EAST, true,
-          Direction.WEST, true,
-          Direction.UP, true,
-          Direction.DOWN, true
-      )
-  );
-  
-  private final Map<Direction, Boolean> exportDirections = new HashMap<>(
-      Map.of(
-          Direction.NORTH, false,
-          Direction.SOUTH, false,
-          Direction.EAST, false,
-          Direction.WEST, false,
-          Direction.UP, false,
-          Direction.DOWN, false
-      )
-  );
-  
-  private final Map<Constants.Sides, Constants.SideState> sideBtnStates = new HashMap<>(
-      Map.of(
-          Constants.Sides.UP, Constants.SideState.INPUT,
-          Constants.Sides.DOWN, Constants.SideState.INPUT,
-          Constants.Sides.LEFT, Constants.SideState.INPUT,
-          Constants.Sides.RIGHT, Constants.SideState.INPUT,
-          Constants.Sides.BACK, Constants.SideState.INPUT,
-          Constants.Sides.FRONT, Constants.SideState.INPUT
-      )
-  );
-  
-  public Direction getRelativeDirection(Constants.Sides side) {
-    Direction facingDir = getBlockState().getValue(MechanicalCrafterBlock.FACING);
-    return switch (side) {
-      case UP -> Direction.UP;
-      case DOWN -> Direction.DOWN;
-      case LEFT -> facingDir.getClockWise();
-      case RIGHT -> facingDir.getCounterClockWise();
-      case BACK -> facingDir.getOpposite();
-      case FRONT -> facingDir;
-    };
-  }
-  
-  public void handleSideBtnClick(@NotNull Constants.Sides side, boolean isShiftPressed, ClickAction clickAction) {
-    Direction sideDir = getRelativeDirection(side);
-    Constants.SideState sideState = getSideState(side);
-    int currentState = sideState.ordinal();
-    int totalStates = Constants.SideState.values().length;
-    
-    if (isShiftPressed) {
-      // Handle shift + left-click logic here
-      sideState = Constants.SideState.NONE;
-      this.sideBtnStates.put(side, sideState);
-    } else {
-      int nextState;
-      if (clickAction != null && clickAction.equals(ClickAction.SECONDARY)) {
-        // For reverse cycling, handle negative numbers
-        nextState = (currentState - 1 + totalStates) % totalStates;
-      } else {
-        // Forward cycling
-        nextState = (currentState + 1) % totalStates;
-      }
-      this.sideBtnStates.put(side, Constants.SideState.values()[nextState]);
-    }
-    
-    
-    // Handle sideState
-    sideState = getSideState(side);
-    switch (sideState){
-      case INPUT -> {
-        this.importDirections.put(sideDir, true);
-        this.exportDirections.put(sideDir, false);
-      }
-      case OUTPUT -> {
-        this.importDirections.put(sideDir, false);
-        this.exportDirections.put(sideDir, true);
-      }
-      case BOTH -> {
-        this.importDirections.put(sideDir,true);
-        this.exportDirections.put(sideDir,true);
-      }
-      case NONE -> {
-        this.importDirections.put(sideDir,false);
-        this.exportDirections.put(sideDir,false);
-      }
-    }
-    
-    ModernUtilsMod.LOGGER.debug("Side {} State Changed to {}", side, getSideState(side));
-    setChanged();
-  }
-  
-  public Constants.SideState getSideState(Constants.Sides side){
-    return this.sideBtnStates.get(side);
-  }
-  
+  private SideManager sideManager = new SideManager(this);
   private final RedstoneManager redstoneManager = new RedstoneManager(this);
   private ContainerData containerData;
   
@@ -175,43 +73,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     this.setChanged();
   }
   
-  public void autoImportBtnHandler() {
-  //  Logic to enable and disable auto import
-    ModernUtilsMod.LOGGER.debug("Auto Import Button Pressed");
-    this.autoImportEnabled = !this.autoImportEnabled;
-    PacketDistributor.sendToServer(
-        new SlotStatePayload(-2,this.autoImportEnabled,this.getBlockPos())
-    );
-  }
-  
-  public void autoExportBtnHandler() {
-    ModernUtilsMod.LOGGER.debug("Auto Export Button Pressed");
-    this.autoExportEnabled = !this.autoExportEnabled;
-    PacketDistributor.sendToServer(
-        new SlotStatePayload(-1,this.autoExportEnabled,this.getBlockPos())
-    );
-  }
-  
-  public void setAutoExport(boolean state) {
-    this.autoExportEnabled = state;
-  }
-  
-  public void setAutoImport(boolean state) {
-    this.autoImportEnabled = state;
-  }
-  
-  public boolean isAutoImportEnabled() {
-    return this.autoImportEnabled;
-  }
-  
-  public boolean isAutoExportEnabled() {
-    return this.autoExportEnabled;
-  }
-  
-  public void setSideBtnState(Constants.@NotNull Sides side,Constants.SideState state) {
-    this.sideBtnStates.put(side, state);
-  }
-
   public class CraftingSlotHandler extends CustomItemStackHandler {
     public CraftingSlotHandler(int size) {
       super(size, MechanicalCrafterBlockEntity.this);
@@ -424,7 +285,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         // ModernUtils.LOGGER.info("Can Craft!");
         craft();
       } else {
-        if (autoImportEnabled) {
+        if (sideManager.isAutoImportEnabled()) {
           autoImport();
           if (canCraft()){
             craft();
@@ -432,30 +293,21 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         }
       }
     }
-    if (autoExportEnabled) {
-      autoExport(slevel);
+    if (sideManager.isAutoExportEnabled()) {
+      sideManager.autoExport(this.outputSlots);
     }
   }
   
-  private void autoImport() {
+  private void autoImport(){
     if (this.recipe == null) return;
     
-    List<IngredientNeed> neededItems = calculateNeededItems();
+    List<SideManager.IngredientNeed> neededItems = calculateNeededItems();
     if (neededItems.isEmpty()) return;
-    
-    getValidDirectionsStream(Direction.values(), this.importDirections).forEach(direction -> importFromAdjacentInventories(neededItems, direction));
+    sideManager.autoImport(neededItems,this.inputSlots);
   }
   
-  private @NotNull Stream<Direction> getValidDirectionsStream(Direction[] directions, Map<Direction, Boolean> map) {
-    //  Filter out directions that are false in the import directions map
-    return Arrays.stream(directions).filter(map::get);
-  }
-  
-  private record IngredientNeed(Ingredient ingredient, int slot, int count) {
-  }
-  
-  private List<IngredientNeed> calculateNeededItems() {
-    List<IngredientNeed> neededItems = new ArrayList<>();
+  private List<SideManager.IngredientNeed> calculateNeededItems() {
+    List<SideManager.IngredientNeed> neededItems = new ArrayList<>();
     List<Ingredient> recipeIngredients = this.recipe.getIngredients();
     NonNullList<ItemStack> inputStacks = this.inputSlots.getStacksCopy();
     for (int i = 0; i < recipeIngredients.size(); i++) {
@@ -478,104 +330,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       }
       
       if (foundCount < requiredCount) {
-        neededItems.add(new IngredientNeed(ingredient, i, requiredCount - foundCount));
+        neededItems.add(new SideManager.IngredientNeed(ingredient, i, requiredCount - foundCount));
       }
     }
     
     return neededItems;
-  }
-  
-  private void importFromAdjacentInventories(List<IngredientNeed> neededItems, Direction direction) {
-      if (neededItems.isEmpty()) return;
-      BlockPos pos = this.getBlockPos().relative(direction);
-      if (this.level == null || this.level.isClientSide() || !(this.level instanceof ServerLevel))
-        return;
-      BlockEntity blockEntity = this.level.getBlockEntity(pos);
-      if (blockEntity == null) return;
-      
-      IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction.getOpposite());
-      if (cap == null) return;
-      
-      Iterator<IngredientNeed> iterator = neededItems.iterator();
-      while (iterator.hasNext()) {
-        IngredientNeed need = iterator.next();
-        boolean found = false;
-        
-        for (int slot = 0; slot < cap.getSlots(); slot++) {
-          ItemStack extractedStack = cap.extractItem(slot, need.count, true); // Simulate extraction
-          if (!extractedStack.isEmpty() && need.ingredient.test(extractedStack)) {
-            ItemStack actualExtracted = cap.extractItem(slot, need.count, false); // Actually extract
-            if (putInInputSlots(this.inputSlots, actualExtracted)) {
-              found = true;
-              break;
-            }
-          }
-        }
-        
-        if (found) {
-          iterator.remove(); // Remove this need from the list
-        }
-      }
-  }
-  
-  private boolean putInInputSlots(ItemStackHandler inputSlots, ItemStack stack) {
-    // First, try to stack with existing items
-    for (int i = 0; i < inputSlots.getSlots(); i++) {
-      ItemStack existingStack = inputSlots.getStackInSlot(i);
-      if (!existingStack.isEmpty() && ItemStack.isSameItemSameComponents(existingStack, stack)) {
-        if (existingStack.getCount() < existingStack.getMaxStackSize()) {
-          existingStack.grow(1);
-          inputSlots.setStackInSlot(i, existingStack);
-          return true;
-        }
-      }
-    }
-    
-    // If stacking wasn't possible, find the first empty slot
-    for (int i = 0; i < inputSlots.getSlots(); i++) {
-      if (inputSlots.getStackInSlot(i).isEmpty()) {
-        inputSlots.setStackInSlot(i, stack);
-        return true;
-      }
-    }
-    
-    return false;
-  }
-  
-  private void autoExport(ServerLevel level) {
-  //  Get output slots
-    CustomItemStackHandler outputSlots = this.outputSlots;
-    if (outputSlots.isCompletelyEmpty())
-      return;
-    var exportValidDirections = getValidDirectionsStream(Direction.values(), this.exportDirections).toList();
-    for (Direction direction : exportValidDirections) {
-      BlockPos pos = this.getBlockPos().relative(direction);
-      BlockState state = level.getBlockState(pos);
-      if (state.hasBlockEntity() && state.getBlock() instanceof EntityBlock) {
-        if (level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity) return;
-        // Get the item handler from the block entity
-        IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, direction.getOpposite());
-        if (cap == null)
-          continue;
-        
-        // Iterate through the items to export to the block
-        for (int i = 0; i < outputSlots.getSlots(); i++) {
-          ItemStack itemToExport = outputSlots.getStackInSlot(i);
-          if (itemToExport.isEmpty())
-            continue;
-          
-          // Try to insert the item into the capability
-          for (int j = 0; j < cap.getSlots(); j++) {
-            ItemStack inserted = cap.insertItem(j, itemToExport, false);
-            if (inserted.isEmpty()){
-              outputSlots.setStackInSlot(i, ItemStack.EMPTY);
-              break;
-            }
-            itemToExport.setCount(inserted.getCount()); // Update the count of the item remaining to export
-          }
-        }
-      }
-    }
   }
 
   private CustomRecipeExtender<?> getRecipe(ServerLevel level) {
@@ -900,8 +659,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     if (side == null) {
       return this.combinedInvHandler;
     }
-    boolean canImport = importDirections.getOrDefault(side, false);
-    boolean canExport = exportDirections.getOrDefault(side, false);
+    boolean canImport = sideManager.isImportDirection(side);
+    boolean canExport = sideManager.isExportDirection(side);
     
     return new IItemHandler() {
       @Override
@@ -985,68 +744,20 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Store additional state variables
     modData.putInt("remainItemToggleValue", this.remainItemToggleValue);
     
-    modData.putBoolean("autoImportEnabled", this.autoImportEnabled);
-    modData.putBoolean("autoExportEnabled", this.autoExportEnabled);
-    
     // Save the result if it exists
     if (this.result != null && !this.result.isEmpty()) {
       modData.put("result", this.result.save(registries));
     }
     
     this.addDisabledSlots(modData);
-    this.saveSidesConfig(modData);
     
     // Attempt to save the recipe, if available
     saveRecipeToNBT(modData, registries);
     
     this.redstoneManager.saveToTag(modData);
+    this.sideManager.saveToTag(modData);
     
     return modData;
-  }
-  
-  private void saveSidesConfig(CompoundTag tag) {
-    CompoundTag sidesConfig = new CompoundTag();
-    sidesConfig.putInt("up", this.sideBtnStates.get(Constants.Sides.UP).ordinal());
-    sidesConfig.putInt("down", this.sideBtnStates.get(Constants.Sides.DOWN).ordinal());
-    sidesConfig.putInt("left", this.sideBtnStates.get(Constants.Sides.LEFT).ordinal());
-    sidesConfig.putInt("right", this.sideBtnStates.get(Constants.Sides.RIGHT).ordinal());
-    sidesConfig.putInt("back", this.sideBtnStates.get(Constants.Sides.BACK).ordinal());
-    sidesConfig.putInt("front", this.sideBtnStates.get(Constants.Sides.FRONT).ordinal());
-    tag.put("sidesConfig", sidesConfig);
-  }
-  
-  private void loadSidesConfig(CompoundTag tag) {
-    CompoundTag sidesConfig = tag.getCompound("sidesConfig");
-    this.sideBtnStates.put(Constants.Sides.UP, Constants.SideState.values()[sidesConfig.getInt("up")]);
-    this.sideBtnStates.put(Constants.Sides.DOWN, Constants.SideState.values()[sidesConfig.getInt("down")]);
-    this.sideBtnStates.put(Constants.Sides.LEFT, Constants.SideState.values()[sidesConfig.getInt("left")]);
-    this.sideBtnStates.put(Constants.Sides.RIGHT, Constants.SideState.values()[sidesConfig.getInt("right")]);
-    this.sideBtnStates.put(Constants.Sides.BACK, Constants.SideState.values()[sidesConfig.getInt("back")]);
-    this.sideBtnStates.put(Constants.Sides.FRONT, Constants.SideState.values()[sidesConfig.getInt("front")]);
-    
-    for (Constants.Sides side : Constants.Sides.values()) {
-      var sideState = getSideState(side);
-      Direction sideDir = getRelativeDirection(side);
-      
-      switch (sideState){
-        case INPUT -> {
-          this.importDirections.put(sideDir,true);
-          this.exportDirections.put(sideDir,false);
-        }
-        case OUTPUT -> {
-          this.importDirections.put(sideDir,false);
-          this.exportDirections.put(sideDir,true);
-        }
-        case BOTH -> {
-          this.importDirections.put(sideDir,true);
-          this.exportDirections.put(sideDir,true);
-        }
-        case NONE -> {
-          this.importDirections.put(sideDir,false);
-          this.exportDirections.put(sideDir,false);
-        }
-      }
-    }
   }
   
   private void addDisabledSlots(CompoundTag tag) {
@@ -1105,8 +816,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Load additional state variables
     this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
     this.redstoneManager.loadFromTag(tag);
-    this.autoImportEnabled = tag.getBoolean("autoImportEnabled");
-    this.autoExportEnabled = tag.getBoolean("autoExportEnabled");
+    this.sideManager.loadFromTag(tag);
     this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
     
     // Load the recipe if it exists
@@ -1125,8 +835,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         this.containerData.set(j, 1);
       }
     }
-    
-    this.loadSidesConfig(tag);
   }
   
   private boolean slotCanBeDisabled(int slot) {
@@ -1152,6 +860,11 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   public RedstoneManager getRedstoneManager() {
     return this.redstoneManager;
+  }
+  
+  @Override
+  public SideManager getSideManager() {
+    return this.sideManager;
   }
   
   // Menu

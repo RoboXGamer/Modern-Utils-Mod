@@ -63,13 +63,13 @@ public class ServerPayloadHandler {
         case -1 -> {
           var blockEntity = context.player().level().getBlockEntity(blockPos);
           if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-            be.setAutoExport(state);
+            be.getSideManager().setAutoExportEnabled(state);
           }
         }
         case -2 -> {
           var blockEntity = context.player().level().getBlockEntity(blockPos);
           if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-            be.setAutoImport(state);
+            be.getSideManager().setAutoImportEnabled(state);
           }
         }
         default -> {

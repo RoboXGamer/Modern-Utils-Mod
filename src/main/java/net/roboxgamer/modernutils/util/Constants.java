@@ -52,4 +52,8 @@ public class Constants {
   public interface IRedstoneConfigurable {
     RedstoneManager getRedstoneManager();
   }
+  
+  public interface ISidedMachine {
+    SideManager getSideManager();
+  }
 }

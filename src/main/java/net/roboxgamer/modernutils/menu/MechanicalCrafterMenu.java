@@ -208,9 +208,9 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   public boolean clickMenuButton(Player player, int id) {
     PackedButtonData packedButtonData = PackedButtonData.fromId(id);
     Constants.Sides side = packedButtonData.side();
-    this.blockEntity.handleSideBtnClick(side, packedButtonData.shifted(), packedButtonData.clickAction());
+    this.blockEntity.getSideManager().handleSideBtnClick(side, packedButtonData.shifted(), packedButtonData.clickAction());
     PacketDistributor.sendToPlayer((ServerPlayer) player,
-                                   new SideStatePayload(side, this.blockEntity.getSideState(side), this.blockEntity.getBlockPos())
+                                   new SideStatePayload(side, this.blockEntity.getSideManager().getSideState(side), this.blockEntity.getBlockPos())
           );
     return true;
   }
