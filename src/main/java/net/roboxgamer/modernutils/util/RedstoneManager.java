@@ -15,14 +15,16 @@ public class RedstoneManager {
   public enum RedstoneMode {
     ALWAYS_ON,
     REDSTONE_ON,
-    REDSTONE_OFF
+    REDSTONE_OFF,
+    PULSE
   }
   
   // I want a map to map int to redstone mode
   public static final Map<Integer, RedstoneMode> REDSTONE_MODE_MAP = Map.of(
       0, RedstoneMode.ALWAYS_ON,
       1, RedstoneMode.REDSTONE_ON,
-      2, RedstoneMode.REDSTONE_OFF
+      2, RedstoneMode.REDSTONE_OFF,
+      3, RedstoneMode.PULSE
   );
   
   private RedstoneMode redstoneMode = RedstoneMode.ALWAYS_ON;
@@ -33,7 +35,7 @@ public class RedstoneManager {
   
   public void setRedstoneMode(RedstoneMode mode) {
     this.redstoneMode = mode;
-    ModernUtilsMod.LOGGER.debug("RedstoneMode: {}", this.redstoneMode);
+    //ModernUtilsMod.LOGGER.debug("RedstoneMode: {}", this.redstoneMode);
     this.blockEntity.setChanged();
   }
   

@@ -47,7 +47,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private static final ResourceLocation[] REDSTONE_MODE_TEXTURES = {
       ModernUtilsMod.location("redstone_mode_0"),
       ModernUtilsMod.location("redstone_mode_1"),
-      ModernUtilsMod.location("redstone_mode_2")
+      ModernUtilsMod.location("redstone_mode_2"),
+      ModernUtilsMod.location("redstone_mode_3")
   };
   private static final ResourceLocation DISABLED_SLOT_LOCATION_SPRITE = ResourceLocation.withDefaultNamespace("container/crafter/disabled_slot");
   private static final Component DISABLED_SLOT_TOOLTIP = Component.translatable("gui.togglable_slot");
