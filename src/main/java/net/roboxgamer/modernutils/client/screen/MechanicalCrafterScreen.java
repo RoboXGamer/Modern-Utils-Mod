@@ -36,8 +36,6 @@ import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalCrafterMenu> {
   private static final String location =
       ModernUtilsMod.MODID + ".mechanical_crafter_screen";
-  private static final Component TITLE =
-      Component.translatable("gui." + location);
   private static final Component BUTTON_TEXT =
       Component.translatable("gui." + location + ".button_text");
   
@@ -84,7 +82,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     this.imageHeight = 236;
     this.inventoryLabelY = this.imageHeight - 92;
     this.player = playerInv.player;
-    this.titleLabelY = 10000;
+    this.titleLabelY = this.topPos + 8;
   }
   
   @Override
@@ -324,7 +322,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   
   private void renderScreen(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
-    guiGraphics.drawString(this.font, TITLE, this.leftPos + 8, this.topPos + 6, 0x404040, false);
   }
   
   private void renderWidgets(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
