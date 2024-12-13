@@ -1,4 +1,4 @@
-package net.roboxgamer.modernutils.integrations.jade.magicblock;
+package net.roboxgamer.modernutils.integrations.jade;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -15,7 +15,8 @@ import snownee.jade.api.ui.IElementHelper;
 public enum MagicBlockDataProvider implements
     IBlockComponentProvider, IServerDataProvider<BlockAccessor> {
   INSTANCE;
-
+  
+  
   @Override
   public void appendTooltip(
       ITooltip iTooltip,
@@ -27,16 +28,16 @@ public enum MagicBlockDataProvider implements
     );
     iTooltip.add(elem);
   }
-
-
+  
+  
   @Override
   public void appendServerData(CompoundTag compoundTag, BlockAccessor blockAccessor) {
     MagicBlockBlockEntity be = (MagicBlockBlockEntity) blockAccessor.getBlockEntity();
     compoundTag.putInt("data", be.getSpeed());
   }
-
+  
   @Override
   public ResourceLocation getUid() {
-    return MagicBlockPlugin.DATA;
+    return ModJadePlugin.MAGICDATA;
   }
 }
