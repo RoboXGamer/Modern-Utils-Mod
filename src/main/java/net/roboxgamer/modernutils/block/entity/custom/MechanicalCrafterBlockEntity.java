@@ -1,10 +1,7 @@
 package net.roboxgamer.modernutils.block.entity.custom;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -49,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
@@ -109,16 +105,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   public Direction getRelativeDirection(Constants.Sides side) {
     Direction facingDir = getBlockState().getValue(MechanicalCrafterBlock.FACING);
-    Direction sideDir = switch (side) {
+    return switch (side) {
       case UP -> Direction.UP;
       case DOWN -> Direction.DOWN;
       case LEFT -> facingDir.getClockWise();
       case RIGHT -> facingDir.getCounterClockWise();
       case BACK -> facingDir.getOpposite();
       case FRONT -> facingDir;
-      default -> Direction.NORTH;
     };
-    return sideDir;
   }
   
   public void handleSideBtnClick(@NotNull Constants.Sides side, boolean isShiftPressed, ClickAction clickAction) {
@@ -175,10 +169,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   
   private final RedstoneManager redstoneManager = new RedstoneManager(this);
   private ContainerData containerData;
-  
-  public ContainerData getContainerData() {
-    return this.containerData;
-  }
   
   public void setSlotState(int slotIndex, int v) {
     this.containerData.set(slotIndex, v);
@@ -237,7 +227,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
 
     public NonNullList<ItemStack> getStacksCopy(int startIndex) {
-      var t = NonNullList.withSize(this.stacks.size(), ItemStack.EMPTY);
+      var t = NonNullList.withSize(this.stacks.size()-startIndex, ItemStack.EMPTY);
       for (int i = startIndex; i < this.stacks.size(); i++) {
         t.set(i - startIndex, this.stacks.get(i).copy());
       }
@@ -698,37 +688,24 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return recipe.getIngredients().isEmpty();
   }
   
-  private CraftingInput getCraftingInputFromActualInput(List<ItemStack> items) {
+  private CraftingInput getCraftingInputFromActualInput() {
     // Get a copy of the input slots' stacks
     var inputSlotStacks = this.inputSlots.getStacksCopy();
 
     // Make a copy of the items list passed as a parameter
-    ArrayList<ItemStack> itemsToMatch = items.stream().map(ItemStack::copy)
-        .collect(Collectors.toCollection(ArrayList::new));
+    var itemsToMatch = this.craftingSlots.getStacksCopy(1);
 
     // Prepare a list for the crafting input with 9 slots (3x3)
     var matchedItems = NonNullList.withSize(9, ItemStack.EMPTY);
-
-    // Iterate through the input slots and attempt to match the items
-    for (int slotIndex = 0; slotIndex < inputSlotStacks.size(); slotIndex++) {
-      ItemStack inputSlotItem = inputSlotStacks.get(slotIndex);
-
-      // Iterate through the items to match
-      for (int matchIndex = 0; matchIndex < itemsToMatch.size(); matchIndex++) {
-        ItemStack matchingItem = itemsToMatch.get(matchIndex);
-
-        // If items match by type, copy the count from the matching item
-        if (ItemStack.isSameItem(matchingItem, inputSlotItem)) {
-          matchedItems.set(slotIndex, inputSlotItem.copyWithCount(matchingItem.getCount()));
-
-          // Remove the matched item from the list to avoid further matches
-          itemsToMatch.remove(matchIndex);
-          break; // Break the inner loop and move to the next input slot
+    
+    for (int i = 0; i < matchedItems.size(); i++) {
+      ItemStack toMatch = itemsToMatch.get(i);
+      for (ItemStack inputItem : inputSlotStacks) {
+        if (ItemStack.isSameItem(toMatch, inputItem)) {
+          matchedItems.set(i, toMatch.copy());
         }
       }
     }
-
-    // Construct the CraftingInput with the matched items
     return CraftingInput.of(3, 3, matchedItems);
   }
 
@@ -806,21 +783,27 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     
     // Create a simulated inventory for output slots
-    ItemStackHandler tempOutputSlots = new ItemStackHandler(this.outputSlots.getSlots());
+    var tempOutputSlots = new CustomItemStackHandler(this.outputSlots.getSlots());
     copySlots(this.outputSlots, tempOutputSlots);
     
     // Attempt to place the main result in simulated output slots
     ItemStack result = this.result.copy();
     if (!tryFitInSlots(result, tempOutputSlots)) return false;
     
-    ItemStackHandler tempInputSlots = new ItemStackHandler(this.inputSlots.getSlots());
+    var tempInputSlots = new CustomItemStackHandler(this.inputSlots.getSlots());
     copySlots(this.inputSlots, tempInputSlots);
     
-    // Create a simulated inventory for remaining items
-    ItemStackHandler tempToPlaceIn = this.remainItemToggleValue == 0 ? tempInputSlots : tempOutputSlots;
+    CustomItemStackHandler tempToPlaceIn;
+    if (this.remainItemToggleValue == 0) {
+      tempToPlaceIn = tempInputSlots;
+      inputCheck(tempInputSlots.getStacks(),ingredients);
+    } else {
+      tempToPlaceIn = tempOutputSlots;
+    }
     
+    var t2 = getCraftingInputFromActualInput();
     // Attempt to fit each remaining item in the chosen slots
-    NonNullList<ItemStack> remainingItems = this.recipe.getRemainingItems(getCraftingInputFromActualInput(this.inputSlots.getStacksCopy()));
+    NonNullList<ItemStack> remainingItems = this.recipe.baseRecipe.getRemainingItems(t2);
     for (ItemStack remaining : remainingItems) {
       if (!tryFitInSlots(remaining, tempToPlaceIn)) return false;
     }
@@ -867,7 +850,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Get the list of ingredients from the recipe
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
     // Get the crafting input from the actual input
-    CraftingInput input = getCraftingInputFromActualInput(this.craftingInputList);
+    CraftingInput input = getCraftingInputFromActualInput();
     // ModernUtils.LOGGER.debug("input: {}", input.items());
 
     // Get the remaining items
