@@ -23,7 +23,6 @@ import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -53,7 +52,7 @@ import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_BLACK
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_SPECIAL_RECIPES;
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
-public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider {
+public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider, Constants.IRedstoneConfigurable {
   public Component TITLE = Component.translatable("block.modernutils.mechanical_crafter_block");
   
   public static final int INPUT_SLOTS_COUNT = 9;
@@ -867,10 +866,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return this.tc % (20 * seconds) == 0;
   }
   
-  public RedstoneManager getRedstoneManager() {
-    return redstoneManager;
-  }
-  
   public String getRemainItemToggleDisplayValue() {
     return this.remainItemToggleValue == 0 ? "Input" : "Output";
   }
@@ -899,10 +894,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public void setRenderStack(ItemStack itemStack) {
     this.result = itemStack;
     this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
-  }
-
-  public @Nullable IItemHandler getCombinedInvWrapper() {
-    return this.combinedInvHandler;
   }
   
   public IItemHandler getCapabilityHandler(Direction side) {
@@ -958,7 +949,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     return this.inputSlots;
   }
   
-  public ItemStackHandler getOutputSlotsItemHandler() {
+  public CustomItemStackHandler getOutputSlotsItemHandler() {
     return this.outputSlots;
   }
   
@@ -993,7 +984,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     // Store additional state variables
     modData.putInt("remainItemToggleValue", this.remainItemToggleValue);
-    modData.putInt("redstoneMode", this.redstoneManager.getRedstoneMode().ordinal());
+    
     modData.putBoolean("autoImportEnabled", this.autoImportEnabled);
     modData.putBoolean("autoExportEnabled", this.autoExportEnabled);
     
@@ -1007,6 +998,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     // Attempt to save the recipe, if available
     saveRecipeToNBT(modData, registries);
+    
+    this.redstoneManager.saveToTag(modData);
     
     return modData;
   }
@@ -1111,9 +1104,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     
     // Load additional state variables
     this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
-    this.redstoneManager.setRedstoneMode(
-        REDSTONE_MODE_MAP.get(tag.getInt("redstoneMode"))
-    );
+    this.redstoneManager.loadFromTag(tag);
     this.autoImportEnabled = tag.getBoolean("autoImportEnabled");
     this.autoExportEnabled = tag.getBoolean("autoExportEnabled");
     this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
@@ -1157,6 +1148,10 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   @Override
   public @Nullable Packet<ClientGamePacketListener> getUpdatePacket() {
     return ClientboundBlockEntityDataPacket.create(this);
+  }
+  
+  public RedstoneManager getRedstoneManager() {
+    return this.redstoneManager;
   }
   
   // Menu

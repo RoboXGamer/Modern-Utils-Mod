@@ -48,4 +48,8 @@ public class Constants {
       default -> 0xAA555555;     // Grey with some transparency
     };
   }
+  
+  public interface IRedstoneConfigurable {
+    RedstoneManager getRedstoneManager();
+  }
 }

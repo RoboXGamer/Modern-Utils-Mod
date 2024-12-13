@@ -1,5 +1,6 @@
 package net.roboxgamer.modernutils.util;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.roboxgamer.modernutils.ModernUtilsMod;
 
@@ -38,5 +39,15 @@ public class RedstoneManager {
   
   public RedstoneMode getNextRedstoneMode() {
     return RedstoneMode.values()[(this.redstoneMode.ordinal() + 1) % RedstoneMode.values().length];
+  }
+  
+  public void loadFromTag(CompoundTag tag){
+    setRedstoneMode(
+        REDSTONE_MODE_MAP.get(tag.getInt("redstoneMode"))
+    );
+  }
+  
+  public void saveToTag(CompoundTag tag){
+    tag.putInt("redstoneMode", getRedstoneMode().ordinal());
   }
 }
