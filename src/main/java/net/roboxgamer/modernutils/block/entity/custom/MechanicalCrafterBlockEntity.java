@@ -42,42 +42,42 @@ import net.roboxgamer.modernutils.util.Constants.IRedstoneConfigurable;
 import net.roboxgamer.modernutils.util.Constants.ISidedMachine;
 
 import java.util.*;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_SPECIAL_RECIPES;
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
-public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuProvider, IRedstoneConfigurable, ISidedMachine {
+public class MechanicalCrafterBlockEntity extends BlockEntity
+    implements MenuProvider, IRedstoneConfigurable, ISidedMachine {
   public Component TITLE = Component.translatable("block.modernutils.mechanical_crafter_block");
-  
+
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
   public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   private static final int RESULT_SLOT = 0;
-  
+
   private int tc = 0;
   private CustomRecipeExtender<?> recipe;
   private ItemStack result;
   private int remainItemToggleValue = 1;
   private List<ItemStack> craftingInputList;
-  
+
   private SideManager sideManager = new SideManager(this);
   private final RedstoneManager redstoneManager = new RedstoneManager(this);
   private ContainerData containerData;
-  
+
   public void setSlotState(int slotIndex, int v) {
     this.containerData.set(slotIndex, v);
     this.setChanged();
   }
-  
+
   public class CraftingSlotHandler extends CustomItemStackHandler {
     public CraftingSlotHandler(int size) {
       super(size, MechanicalCrafterBlockEntity.this);
     }
-    
+
     @Override
     protected void onContentsChanged(int slot) {
       if (slot == RESULT_SLOT)
@@ -98,7 +98,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       }
       super.onContentsChanged(slot);
     }
-    
+
     NonNullList<Ingredient> getIngredientsList() {
       return NonNullList.copyOf(
           this.getStacksCopy(1).stream()
@@ -108,7 +108,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
   }
 
-  private final CustomItemStackHandler inputSlots = new CustomItemStackHandler(9,this);
+  private final CustomItemStackHandler inputSlots = new CustomItemStackHandler(9, this);
   private final CustomItemStackHandler outputSlots = new CustomItemStackHandler(9, this) {
     @Override
     public boolean allDisabled() {
@@ -117,6 +117,23 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
           return false;
         }
       }
+      return true;
+    }
+
+    @Override
+    public boolean isFull() {
+      for (int i = 0; i < this.getSlots(); i++) {
+        // Skip disabled slots
+        if (isSlotDisabled(i))
+          continue;
+
+        ItemStack stack = this.getStackInSlot(i);
+        // If we find an empty slot OR a non-full stack, the inventory is NOT full
+        if (stack.isEmpty() || stack.getCount() < stack.getMaxStackSize()) {
+          return false;
+        }
+      }
+      // If we haven't found any available space, the inventory is full
       return true;
     }
   };
@@ -218,19 +235,19 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
   public MechanicalCrafterBlockEntity(BlockPos pos, BlockState blockState) {
     super(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(), pos, blockState);
-    this.containerData  = new ContainerData() {
+    this.containerData = new ContainerData() {
       private final int[] slotStates = new int[9];
-      
+
       @Override
       public int get(int index) {
         return this.slotStates[index];
       }
-      
+
       @Override
       public void set(int index, int value) {
         this.slotStates[index] = value;
       }
-      
+
       @Override
       public int getCount() {
         return 9;
@@ -262,20 +279,22 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
       }
     }
-    
+
     // Redstone control logic
     boolean powered = level.hasNeighborSignal(this.getBlockPos());
-    
+
     switch (this.redstoneManager.getRedstoneMode()) {
       case ALWAYS_ON:
         break; // No additional check, always allows crafting
-      
+
       case REDSTONE_ON:
-        if (!powered) return; // Only craft if receiving redstone power
+        if (!powered)
+          return; // Only craft if receiving redstone power
         break;
-      
+
       case REDSTONE_OFF:
-        if (powered) return; // Stop crafting if receiving redstone power
+        if (powered)
+          return; // Stop crafting if receiving redstone power
         break;
     }
     // *** Logic for crafting ***
@@ -287,7 +306,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       } else {
         if (sideManager.isAutoImportEnabled()) {
           autoImport();
-          if (canCraft()){
+          if (canCraft()) {
             craft();
           }
         }
@@ -297,29 +316,33 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       sideManager.autoExport(this.outputSlots);
     }
   }
-  
-  private void autoImport(){
-    if (this.recipe == null) return;
-    
+
+  private void autoImport() {
+    if (this.recipe == null)
+      return;
+
     List<SideManager.IngredientNeed> neededItems = calculateNeededItems();
-    if (neededItems.isEmpty()) return;
-    sideManager.autoImport(neededItems,this.inputSlots);
+    if (neededItems.isEmpty())
+      return;
+    sideManager.autoImport(neededItems, this.inputSlots);
   }
-  
+
   private List<SideManager.IngredientNeed> calculateNeededItems() {
     List<SideManager.IngredientNeed> neededItems = new ArrayList<>();
     List<Ingredient> recipeIngredients = this.recipe.getIngredients();
     NonNullList<ItemStack> inputStacks = this.inputSlots.getStacksCopy();
     for (int i = 0; i < recipeIngredients.size(); i++) {
       Ingredient ingredient = recipeIngredients.get(i);
-      if (ingredient == Ingredient.EMPTY) continue; // Skip empty ingredients
-      
+      if (ingredient == Ingredient.EMPTY)
+        continue; // Skip empty ingredients
+
       ItemStack[] matchingStacks = ingredient.getItems();
-      if (matchingStacks.length == 0) continue; // Skip if no matching items
+      if (matchingStacks.length == 0)
+        continue; // Skip if no matching items
       ItemStack requiredStack = matchingStacks[0].copy(); // Use the first matching item as a representative
       int requiredCount = requiredStack.getCount();
       int foundCount = 0;
-      
+
       // Check all input slots for this ingredient
       for (ItemStack slotStack : inputStacks) {
         if (!slotStack.isEmpty() && ingredient.test(slotStack) && slotStack.getCount() >= requiredCount) {
@@ -328,17 +351,18 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
           break;
         }
       }
-      
+
       if (foundCount < requiredCount) {
         neededItems.add(new SideManager.IngredientNeed(ingredient, i, requiredCount - foundCount));
       }
     }
-    
+
     return neededItems;
   }
 
   private CustomRecipeExtender<?> getRecipe(ServerLevel level) {
-    if (this.craftingSlots.isCompletelyEmpty()) return null;
+    if (this.craftingSlots.isCompletelyEmpty())
+      return null;
     RecipeManager recipes = level.getRecipeManager();
     var craftingSlotsStacksCopy = this.craftingSlots.getStacksCopy(1);
     CraftingInput input = CraftingInput.of(3, 3, craftingSlotsStacksCopy);
@@ -349,51 +373,52 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       this.craftingSlots.setStackInSlot(0, ItemStack.EMPTY);
       return null;
     }
-    RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst(); // TODO: Add support for multiple recipes conflicting with the same input
+    RecipeHolder<CraftingRecipe> foundRecipe = list.getFirst(); // TODO: Add support for multiple recipes conflicting
+                                                                // with the same input
     // ModernUtils.LOGGER.debug("foundRecipe: {}", foundRecipe);
-    
+
     ItemStack result = foundRecipe.value().assemble(input, level.registryAccess()).copy();
-    if (result.isEmpty()) return null;
+    if (result.isEmpty())
+      return null;
     this.result = result;
     // ModernUtils.LOGGER.debug("Result: {}", this.result);
-    
+
     PacketDistributor.sendToAllPlayers(new ItemStackPayload(this.result, this.getBlockPos()));
     if (this.craftingSlots.getStackInSlot(RESULT_SLOT) != result)
       this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
-    
-    
-    
+
     CustomRecipeExtender<?> recipeToReturn = new CustomRecipeExtender<>(foundRecipe.value());
-    
+
     // Blacklisted types of recipes
     if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.BLACKLISTED)) {
       return null;
     }
     // Special types of recipes
-    if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.SPECIAL) || isSpecialRecipe(recipeToReturn)){
+    if (isRecipe(foundRecipe.value(), Constants.RecipeTypes.SPECIAL) || isSpecialRecipe(recipeToReturn)) {
       NonNullList<Ingredient> ingredients = this.craftingSlots.getIngredientsList();
       recipeToReturn.setIngredients(ingredients);
     }
-    
+
     return recipeToReturn;
   }
-  
+
   private boolean isRecipe(CraftingRecipe value, Constants.RecipeTypes type) {
     Class<?>[] recipes = switch (type) {
       case BLACKLISTED -> MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
       case SPECIAL -> MECHANICAL_CRAFTER_SPECIAL_RECIPES;
     };
-    
+
     for (var entry : recipes) {
-      if (entry.isInstance(value)) return true;
+      if (entry.isInstance(value))
+        return true;
     }
     return false;
   }
-  
+
   private boolean isSpecialRecipe(CustomRecipeExtender<?> recipe) {
     return recipe.getIngredients().isEmpty();
   }
-  
+
   private CraftingInput getCraftingInputFromActualInput() {
     // Get a copy of the input slots' stacks
     var inputSlotStacks = this.inputSlots.getStacksCopy();
@@ -403,7 +428,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
 
     // Prepare a list for the crafting input with 9 slots (3x3)
     var matchedItems = NonNullList.withSize(9, ItemStack.EMPTY);
-    
+
     for (int i = 0; i < matchedItems.size(); i++) {
       ItemStack toMatch = itemsToMatch.get(i);
       for (ItemStack inputItem : inputSlotStacks) {
@@ -462,8 +487,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // If all ingredients were matched with input items, return true
     return true;
   }
-  
-  private boolean canCraft() {
+
+  public boolean canCraft() {
     // Check if we have necessary inputs and output space
     if (this.inputSlots.isCompletelyEmpty())
       return false;
@@ -478,77 +503,85 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return false;
     // Get the list of ingredients from the recipe
     NonNullList<Ingredient> ingredients = this.recipe.getIngredients();
-    
+
     // Make a copy of the input items to avoid modifying the actual input slots
     // directly
     List<ItemStack> input = this.inputSlots.getStacksCopy();
-    
+
     var validInput = inputCheck(input, ingredients);
     if (!validInput) {
       return false;
     }
-    
+
     // Create a simulated inventory for output slots
-    var tempOutputSlots = new CustomItemStackHandler(this.outputSlots.getSlots(),this);
+    var tempOutputSlots = new CustomItemStackHandler(this.outputSlots.getSlots(), this);
     copySlots(this.outputSlots, tempOutputSlots);
-    
+
     // Attempt to place the main result in simulated output slots
     ItemStack result = this.result.copy();
-    if (!tryFitInSlots(result, tempOutputSlots)) return false;
-    
-    var tempInputSlots = new CustomItemStackHandler(this.inputSlots.getSlots(),this);
+    if (!tryFitInSlots(result, tempOutputSlots, true))
+      return false;
+
+    var tempInputSlots = new CustomItemStackHandler(this.inputSlots.getSlots(), this);
     copySlots(this.inputSlots, tempInputSlots);
-    
+
     CustomItemStackHandler tempToPlaceIn;
     if (this.remainItemToggleValue == 0) {
       tempToPlaceIn = tempInputSlots;
-      inputCheck(tempInputSlots.getStacks(),ingredients);
+      inputCheck(tempInputSlots.getStacks(), ingredients);
     } else {
       tempToPlaceIn = tempOutputSlots;
     }
-    
+
     var t2 = getCraftingInputFromActualInput();
     // Attempt to fit each remaining item in the chosen slots
     NonNullList<ItemStack> remainingItems = this.recipe.baseRecipe.getRemainingItems(t2);
     for (ItemStack remaining : remainingItems) {
-      if (!tryFitInSlots(remaining, tempToPlaceIn)) return false;
+      if (!tryFitInSlots(remaining, tempToPlaceIn, this.remainItemToggleValue == 1))
+        return false;
     }
-    
+
     // If all items fit, crafting can proceed
     return true;
   }
-  
+
   // Helper method to copy stacks to a temporary handler
   private void copySlots(ItemStackHandler source, ItemStackHandler destination) {
     for (int i = 0; i < source.getSlots(); i++) {
       destination.setStackInSlot(i, source.getStackInSlot(i).copy());
     }
   }
-  
+
   // Helper method to check if an item can fit in the given slots
-  private boolean tryFitInSlots(ItemStack stack, ItemStackHandler slots) {
-    if (stack.isEmpty()) return true;
-    
+  private boolean tryFitInSlots(ItemStack stack, ItemStackHandler slots, boolean isOutputSlots) {
+    if (stack.isEmpty())
+      return true;
+
     int remainingCount = stack.getCount();
-    
+
     for (int i = 0; i < slots.getSlots(); i++) {
+      if (isOutputSlots && isSlotDisabled(i))
+        continue;
       ItemStack slotStack = slots.getStackInSlot(i);
-      if (this.remainItemToggleValue==1 && isSlotDisabled(i)) continue;
+      if (this.remainItemToggleValue == 1 && isSlotDisabled(i))
+        continue;
       if (slotStack.isEmpty()) {
-        
+
         int placeableAmount = Math.min(stack.getMaxStackSize(), remainingCount);
         slots.setStackInSlot(i, new ItemStack(stack.getItem(), placeableAmount));
         remainingCount -= placeableAmount;
-        if (remainingCount <= 0) return true;
+        if (remainingCount <= 0)
+          return true;
       } else if (ItemStack.isSameItemSameComponents(slotStack, stack)) {
         int spaceAvailable = slotStack.getMaxStackSize() - slotStack.getCount();
         int placeableAmount = Math.min(spaceAvailable, remainingCount);
         slotStack.grow(placeableAmount);
         remainingCount -= placeableAmount;
-        if (remainingCount <= 0) return true;
+        if (remainingCount <= 0)
+          return true;
       }
     }
-    
+
     return remainingCount <= 0;
   }
 
@@ -570,7 +603,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     int remainingCount = result.getCount();
 
     for (int i = 0; i < this.outputSlots.getSlots(); i++) {
-      if (this.isSlotDisabled(i)) continue;
+      if (this.isSlotDisabled(i))
+        continue;
       ItemStack outputSlot = this.outputSlots.getStackInSlot(i);
 
       if (outputSlot.isEmpty()) {
@@ -592,14 +626,16 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     // Handle remaining items
     remainingCount = 0;
     var toPlaceIn = this.remainItemToggleValue == 0 ? this.inputSlots : this.outputSlots;
-    // ModernUtils.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ? "Input" : "Output" );
+    // ModernUtils.LOGGER.debug("toPlaceIn: {}",this.remainItemToggleValue == 1 ?
+    // "Input" : "Output" );
     for (ItemStack remainingItem : remainingItems) {
       // ModernUtils.LOGGER.debug("remainingItem: {}", remainingItem);
       remainingCount += remainingItem.getCount();
       if (remainingItem.isEmpty())
         continue;
       for (int j = 0; j < toPlaceIn.getSlots(); j++) {
-        if (this.remainItemToggleValue==1 && isSlotDisabled(j)) continue;
+        if (this.remainItemToggleValue == 1 && isSlotDisabled(j))
+          continue;
         ItemStack slot = toPlaceIn.getStackInSlot(j);
         if (ItemStack.isSameItemSameComponents(slot, remainingItem)) {
           int spaceAvailable = slot.getMaxStackSize() - slot.getCount();
@@ -620,19 +656,19 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       setChanged();
     }
   }
-  
-  private boolean everySecond(double seconds){
+
+  private boolean everySecond(double seconds) {
     return this.tc % (20 * seconds) == 0;
   }
-  
+
   public String getRemainItemToggleDisplayValue() {
     return this.remainItemToggleValue == 0 ? "Input" : "Output";
   }
-  
+
   public void setRemainItemToggleValue(int value) {
     this.remainItemToggleValue = value;
   }
-  
+
   public int toggleRemainItemValue() {
     if (this.remainItemToggleValue == 0) {
       this.remainItemToggleValue = 1;
@@ -641,7 +677,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     return this.remainItemToggleValue;
   }
-  
+
   public ItemStack getRenderStack() {
     if (this.result == null)
       return ItemStack.EMPTY;
@@ -649,30 +685,30 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       return ItemStack.EMPTY;
     return this.result;
   }
-  
+
   public void setRenderStack(ItemStack itemStack) {
     this.result = itemStack;
     this.craftingSlots.setStackInSlot(RESULT_SLOT, this.result);
   }
-  
+
   public IItemHandler getCapabilityHandler(Direction side) {
     if (side == null) {
       return this.combinedInvHandler;
     }
     boolean canImport = sideManager.isImportDirection(side);
     boolean canExport = sideManager.isExportDirection(side);
-    
+
     return new IItemHandler() {
       @Override
       public int getSlots() {
         return combinedInvHandler.getSlots();
       }
-      
+
       @Override
       public @NotNull ItemStack getStackInSlot(int slot) {
         return combinedInvHandler.getStackInSlot(slot);
       }
-      
+
       @Override
       public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
         if (!canImport || slot >= inputSlots.getSlots()) {
@@ -680,7 +716,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         }
         return combinedInvHandler.insertItem(slot, stack, simulate);
       }
-      
+
       @Override
       public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
         if (!canExport || slot < inputSlots.getSlots()) {
@@ -688,12 +724,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
         }
         return combinedInvHandler.extractItem(slot, amount, simulate);
       }
-      
+
       @Override
       public int getSlotLimit(int slot) {
         return combinedInvHandler.getSlotLimit(slot);
       }
-      
+
       @Override
       public boolean isItemValid(int slot, @NotNull ItemStack stack) {
         if (!canImport || slot >= inputSlots.getSlots()) {
@@ -703,19 +739,19 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       }
     };
   }
-  
+
   public CustomItemStackHandler getInputSlotsItemHandler() {
     return this.inputSlots;
   }
-  
+
   public CustomItemStackHandler getOutputSlotsItemHandler() {
     return this.outputSlots;
   }
-  
+
   public CraftingSlotHandler getCraftingSlotsItemHandler() {
     return this.craftingSlots;
   }
-  
+
   public SimpleContainer getInputContainer() {
     var t = new SimpleContainer(inputSlots.getSlots());
     for (int i = 0; i < inputSlots.getSlots(); i++) {
@@ -723,7 +759,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
     }
     return t;
   }
-  
+
   public SimpleContainer getOutputContainer() {
     var t = new SimpleContainer(outputSlots.getSlots());
     for (int i = 0; i < outputSlots.getSlots(); i++) {
@@ -735,47 +771,47 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   // Saving and loading
   CompoundTag getModData(HolderLookup.Provider registries) {
     CompoundTag modData = new CompoundTag();
-    
+
     // Serialize input, output, and crafting slots
     modData.put("inputInv", this.inputSlots.serializeNBT(registries));
     modData.put("outputInv", this.outputSlots.serializeNBT(registries));
     modData.put("craftingInv", this.craftingSlots.serializeNBT(registries));
-    
+
     // Store additional state variables
     modData.putInt("remainItemToggleValue", this.remainItemToggleValue);
-    
+
     // Save the result if it exists
     if (this.result != null && !this.result.isEmpty()) {
       modData.put("result", this.result.save(registries));
     }
-    
+
     this.addDisabledSlots(modData);
-    
+
     // Attempt to save the recipe, if available
     saveRecipeToNBT(modData, registries);
-    
+
     this.redstoneManager.saveToTag(modData);
     this.sideManager.saveToTag(modData);
-    
+
     return modData;
   }
-  
+
   private void addDisabledSlots(CompoundTag tag) {
     IntList intlist = new IntArrayList();
-    
+
     for (int i = 0; i < 9; i++) {
       if (this.isSlotDisabled(i)) {
         intlist.add(i);
       }
     }
-    
+
     tag.putIntArray("disabled_slots", intlist);
   }
-  
+
   public boolean isSlotDisabled(int slot) {
     return slot > -1 && slot < 9 && this.containerData.get(slot) == 1;
   }
-  
+
   private void saveRecipeToNBT(CompoundTag modData, HolderLookup.Provider registries) {
     try {
       if (this.recipe instanceof CustomRecipeExtender<?> t) {
@@ -785,7 +821,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       ModernUtilsMod.LOGGER.error("Error saving recipe to NBT: {}", e.getMessage());
     }
   }
-  
+
   @Override
   protected void saveAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.saveAdditional(tag, registries);
@@ -796,7 +832,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   @Override
   protected void loadAdditional(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     super.loadAdditional(tag, registries);
-    
+
     // Check if we are on the client side
     if (level != null && level.isClientSide()) {
       // Deserialize data from the tag for client-side
@@ -806,41 +842,41 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
       deserializeFromTag(modData, registries);
     }
   }
-  
+
   private void deserializeFromTag(CompoundTag tag, HolderLookup.@NotNull Provider registries) {
     // Deserialize input, output, and crafting slots
     this.inputSlots.deserializeNBT(registries, tag.getCompound("inputInv"));
     this.outputSlots.deserializeNBT(registries, tag.getCompound("outputInv"));
     this.craftingSlots.deserializeNBT(registries, tag.getCompound("craftingInv"));
-    
+
     // Load additional state variables
     this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
     this.redstoneManager.loadFromTag(tag);
     this.sideManager.loadFromTag(tag);
     this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
-    
+
     // Load the recipe if it exists
     if (tag.contains("recipe")) {
       loadRecipeFromNBT(tag.getCompound("recipe"));
     }
-    
+
     int[] aint = tag.getIntArray("disabled_slots");
-    
+
     for (int i = 0; i < 9; i++) {
       this.containerData.set(i, 0);
     }
-    
+
     for (int j : aint) {
       if (this.slotCanBeDisabled(j)) {
         this.containerData.set(j, 1);
       }
     }
   }
-  
+
   private boolean slotCanBeDisabled(int slot) {
     return slot > -1 && slot < 9 && this.outputSlots.getStackInSlot(slot).isEmpty();
   }
-  
+
   private void loadRecipeFromNBT(CompoundTag recipeTag) {
     var recipe = Recipe.CODEC.parse(NbtOps.INSTANCE, recipeTag).getOrThrow();
     if (recipe instanceof CraftingRecipe craftingRecipe) {
@@ -857,20 +893,20 @@ public class MechanicalCrafterBlockEntity extends BlockEntity implements MenuPro
   public @Nullable Packet<ClientGamePacketListener> getUpdatePacket() {
     return ClientboundBlockEntityDataPacket.create(this);
   }
-  
+
   public RedstoneManager getRedstoneManager() {
     return this.redstoneManager;
   }
-  
+
   @Override
   public SideManager getSideManager() {
     return this.sideManager;
   }
-  
+
   // Menu
   @Override
   public @Nullable AbstractContainerMenu createMenu(int containerId, @NotNull Inventory playerInventory,
       @NotNull Player player) {
-    return new MechanicalCrafterMenu(containerId, playerInventory, this,this.containerData);
+    return new MechanicalCrafterMenu(containerId, playerInventory, this, this.containerData);
   }
 }
