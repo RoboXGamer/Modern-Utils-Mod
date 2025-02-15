@@ -7,8 +7,9 @@
   "block.modernutils.mini_chest_block": "Mini Chest",
   "block.modernutils.battery_block": "Battery Block",
   "creativetab.modernutils.tab": "Modern Utils",
-  "config.jade.plugin_modernutils.data": "Speed",
-  "tooltip.modernutils.data": "Speed: %s",
+  "config.jade.plugin_modernutils.data": "Magic Block Info",
+  "tooltip.modernutils.speed": "Speed: %sx",
+  "tooltip.modernutils.offset": "Offset: x=%d, y=%d, z=%d",
   "gui.modernutils.mechanical_crafter_screen": "Mechanical Crafter",
   "gui.modernutils.mechanical_crafter_screen.button_text": "Click Me!",
   "modernutils.jei_plugin": "Modern Utils JEI Plugin"

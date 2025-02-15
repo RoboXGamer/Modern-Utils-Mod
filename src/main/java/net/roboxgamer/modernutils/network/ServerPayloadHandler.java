@@ -7,6 +7,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.modernutils.ModernUtilsMod;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
 import net.roboxgamer.modernutils.util.Constants;
 
 import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
@@ -84,5 +85,19 @@ public class ServerPayloadHandler {
   
   public static void handleData(SideStatePayload payload, final IPayloadContext context) {
   //  
+  }
+
+  public static void handleData(MagicBlockSettingsUpdatePayload payload, final IPayloadContext context) {
+    var blockPos = payload.blockPos();
+    var blockEntity = context.player().level().getBlockEntity(blockPos);
+    if (!(blockEntity instanceof MagicBlockBlockEntity be)) return;
+
+    payload.speed().ifPresent(be::setSpeed);
+    payload.offsetX().ifPresent(be::setOffsetX);
+    payload.offsetY().ifPresent(be::setOffsetY);
+    payload.offsetZ().ifPresent(be::setOffsetZ);
+    payload.renderOutline().ifPresent(be::setRenderOutline);
+    
+    be.setChanged();
   }
 }

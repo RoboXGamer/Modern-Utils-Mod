@@ -1,7 +1,7 @@
 package net.roboxgamer.modernutils.block.custom;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -19,12 +19,10 @@ import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 public class MagicBlock extends Block implements EntityBlock {
   public MagicBlock(Properties properties) {
     super(properties);
   }
-
 
   @Override
   public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pos, @NotNull BlockState state) {
@@ -37,28 +35,27 @@ public class MagicBlock extends Block implements EntityBlock {
   }
 
   @Override
-  protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult hitResult) {
-    if (!level.isClientSide() && player.getUsedItemHand() == InteractionHand.MAIN_HAND) {
-      boolean isEmptyHand = player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty();
-      if (!isEmptyHand) return InteractionResult.PASS;
-      BlockEntity be = level.getBlockEntity(pos);
-      if (be instanceof MagicBlockBlockEntity blockEntity) {
-        boolean isCrouching = player.isCrouching();
-        if (isCrouching) {
-          int speed = blockEntity.getSpeed();
-          player.sendSystemMessage(Component.literal("Speed: " + speed));
-          return InteractionResult.CONSUME;
-        }
-        int speed = blockEntity.incrementSpeed();
-        player.sendSystemMessage(Component.literal("Speed: " + speed));
-        return InteractionResult.CONSUME;
-      }
+  protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, @NotNull Level level,
+      @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult hitResult) {
+    if (level.isClientSide) {
+      return InteractionResult.SUCCESS;
     }
-    return InteractionResult.SUCCESS;
+    var hand = player.getUsedItemHand();
+    if (hand != InteractionHand.MAIN_HAND)
+      return InteractionResult.PASS;
+    BlockEntity be = level.getBlockEntity(pos);
+    if (!(be instanceof MagicBlockBlockEntity blockEntity))
+      return InteractionResult.PASS;
+    if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
+      serverPlayer.openMenu(blockEntity, pos);
+    }
+    return InteractionResult.CONSUME;
   }
 
   @Override
-  public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, @NotNull BlockState blockState, @NotNull BlockEntityType<T> blockEntityType) {
-    return level.isClientSide ? null : ((level1, pos, state, blockEntity) -> ((MagicBlockBlockEntity) blockEntity).tick());
+  public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, @NotNull BlockState blockState,
+      @NotNull BlockEntityType<T> blockEntityType) {
+    return level.isClientSide ? null
+        : ((level1, pos, state, blockEntity) -> ((MagicBlockBlockEntity) blockEntity).tick());
   }
 }

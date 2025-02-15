@@ -4,46 +4,47 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
 
 public class ClientPayloadHandler {
   public static void handleData(RemainItemTogglePayload payload, final IPayloadContext context) {
-    var remainItemToggleValue = payload.remainItemToggleValue();
-    //ModernUtils.LOGGER.debug("Client received remainItemToggleValue: {}", remainItemToggleValue);
+    // Empty handler - no client-side action needed
   }
   
   public static void handleData(ItemStackPayload payload, final IPayloadContext context) {
-    ItemStack itemStack = payload.itemStack();
-    //ModernUtils.LOGGER.debug("Client received itemStack: {}", itemStack);
-    BlockPos blockPos = payload.blockPos();
-    //ModernUtils.LOGGER.debug("Client received blockPos: {}", blockPos);
-    var be = context.player().level().getBlockEntity(blockPos);
+    var be = context.player().level().getBlockEntity(payload.blockPos());
     if (be instanceof MechanicalCrafterBlockEntity mcbe) {
-      mcbe.setRenderStack(itemStack);
+      mcbe.setRenderStack(payload.itemStack());
     }
   }
   
   public static void handleData(GhostSlotTransferPayload payload, final IPayloadContext context) {
-    ItemStack itemStack = payload.itemStack();
-    //ModernUtils.LOGGER.debug("Client received itemStack: {}", itemStack);
-    BlockPos blockPos = payload.blockPos();
-    //ModernUtils.LOGGER.debug("Client received blockPos: {}", blockPos);
+    // Empty handler - no client-side action needed
   }
   
   public static void handleData(RedstoneModePayload payload, final IPayloadContext context) {
-    int mode = payload.mode();
-    //ModernUtils.LOGGER.debug("Client received redstoneMode: {}", mode);
+    // Empty handler - no client-side action needed
   }
   
   public static void handleData(SlotStatePayload payload, final IPayloadContext context) {
-    boolean state = payload.slotState();
-    //ModernUtils.LOGGER.debug("Client received redstoneMode: {}", mode);
+    // Empty handler - no client-side action needed
   }
   
   public static void handleData(SideStatePayload payload, final IPayloadContext context) {
-    //ModernUtilsMod.LOGGER.debug("Client received sideStatePayload: {}", payload);
     var blockEntity = context.player().level().getBlockEntity(payload.blockPos());
     if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
       be.getSideManager().setSideBtnState(payload.side(), payload.sideState());
     }
+  }
+
+  public static void handleData(MagicBlockSettingsUpdatePayload payload, final IPayloadContext context) {
+    var blockEntity = context.player().level().getBlockEntity(payload.blockPos());
+    if (!(blockEntity instanceof MagicBlockBlockEntity be)) return;
+
+    payload.speed().ifPresent(be::setSpeed);
+    payload.offsetX().ifPresent(be::setOffsetX);
+    payload.offsetY().ifPresent(be::setOffsetY);
+    payload.offsetZ().ifPresent(be::setOffsetZ);
+    payload.renderOutline().ifPresent(be::setRenderOutline);
   }
 }

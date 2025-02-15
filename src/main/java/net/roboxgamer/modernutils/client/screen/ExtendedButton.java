@@ -87,6 +87,8 @@ public class ExtendedButton extends AbstractWidget {
           .size(this.width, this.height).build();
       this.onPress.onPress(this.button, ClickAction.values()[clickAction], mouseX, mouseY );
       this.player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.4F, 1.0F);
+      // make sure the button message is synced with the widget
+      this.setMessage(this.button.getMessage());
       return true;
     }
     return false;

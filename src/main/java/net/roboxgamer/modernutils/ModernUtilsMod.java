@@ -10,7 +10,9 @@ import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.roboxgamer.modernutils.block.ModBlocks;
 import net.roboxgamer.modernutils.block.entity.ModBlockEntities;
+import net.roboxgamer.modernutils.block.entity.custom.renderer.MagicBlockEntityRenderer;
 import net.roboxgamer.modernutils.block.entity.custom.renderer.MechanicalCrafterBlockEntityRenderer;
+import net.roboxgamer.modernutils.client.screen.MagicBlockScreen;
 import net.roboxgamer.modernutils.client.screen.MechanicalCrafterScreen;
 import net.roboxgamer.modernutils.client.screen.MiniChestScreen;
 import net.roboxgamer.modernutils.item.ModCreativeModTabs;
@@ -87,6 +89,7 @@ public class ModernUtilsMod {
   private void registerScreens(RegisterMenuScreensEvent event) {
     event.register(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), MechanicalCrafterScreen::new);
     event.register(ModMenuTypes.MINI_CHEST_MENU.get(), MiniChestScreen::new);
+    event.register(ModMenuTypes.MAGIC_BLOCK_MENU.get(), MagicBlockScreen::new);
   }
 
   @SubscribeEvent
@@ -98,45 +101,47 @@ public class ModernUtilsMod {
     // Sets the current network version
     final PayloadRegistrar registrar = event.registrar("1");
     registrar.playBidirectional(
-            RemainItemTogglePayload.TYPE,
-            RemainItemTogglePayload.STREAM_CODEC,
-            new DirectionalPayloadHandler<>(
-                    ClientPayloadHandler::handleData,
-                    ServerPayloadHandler::handleData));
+        RemainItemTogglePayload.TYPE,
+        RemainItemTogglePayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
     registrar.playBidirectional(
-            ItemStackPayload.TYPE,
-            ItemStackPayload.STREAM_CODEC,
-            new DirectionalPayloadHandler<>(
-                    ClientPayloadHandler::handleData,
-                    ServerPayloadHandler::handleData));
+        ItemStackPayload.TYPE,
+        ItemStackPayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
     registrar.playBidirectional(
-            GhostSlotTransferPayload.TYPE,
-            GhostSlotTransferPayload.STREAM_CODEC,
-            new DirectionalPayloadHandler<>(
-                    ClientPayloadHandler::handleData,
-                    ServerPayloadHandler::handleData));
+        GhostSlotTransferPayload.TYPE,
+        GhostSlotTransferPayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
     registrar.playBidirectional(
-            RedstoneModePayload.TYPE,
-            RedstoneModePayload.STREAM_CODEC,
-            new DirectionalPayloadHandler<>(
-                    ClientPayloadHandler::handleData,
-                    ServerPayloadHandler::handleData));
+        RedstoneModePayload.TYPE,
+        RedstoneModePayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
     registrar.playBidirectional(
-            SlotStatePayload.TYPE,
-            SlotStatePayload.STREAM_CODEC,
-            new DirectionalPayloadHandler<>(
-                    ClientPayloadHandler::handleData,
-                    ServerPayloadHandler::handleData
-            )
-    );
+        SlotStatePayload.TYPE,
+        SlotStatePayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
     registrar.playBidirectional(
-            SideStatePayload.TYPE,
-            SideStatePayload.STREAM_CODEC,
-            new DirectionalPayloadHandler<>(
-                    ClientPayloadHandler::handleData,
-                    ServerPayloadHandler::handleData
-            )
-    );
+        SideStatePayload.TYPE,
+        SideStatePayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
+    registrar.playBidirectional(
+        MagicBlockSettingsUpdatePayload.TYPE,
+        MagicBlockSettingsUpdatePayload.STREAM_CODEC,
+        new DirectionalPayloadHandler<>(
+            ClientPayloadHandler::handleData,
+            ServerPayloadHandler::handleData));
   }
 
   private void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -157,13 +162,16 @@ public class ModernUtilsMod {
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
   public static class ClientModEvents {
     @SubscribeEvent
-    public static void onClientSetup(@NotNull FMLClientSetupEvent event) {}
+    public static void onClientSetup(@NotNull FMLClientSetupEvent event) {
+    }
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
       event.registerBlockEntityRenderer(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(),
           MechanicalCrafterBlockEntityRenderer::new);
+      event.registerBlockEntityRenderer(ModBlockEntities.MAGIC_BLOCK_BE.get(),
+          MagicBlockEntityRenderer::new);
     }
-    
+
   }
 }
