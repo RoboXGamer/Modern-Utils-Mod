@@ -433,7 +433,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
       ItemStack toMatch = itemsToMatch.get(i);
       for (ItemStack inputItem : inputSlotStacks) {
         if (ItemStack.isSameItem(toMatch, inputItem)) {
-          matchedItems.set(i, toMatch.copy());
+          matchedItems.set(i, inputItem.copy());
         }
       }
     }
