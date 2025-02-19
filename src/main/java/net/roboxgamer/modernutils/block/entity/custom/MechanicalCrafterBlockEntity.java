@@ -434,6 +434,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
       for (ItemStack inputItem : inputSlotStacks) {
         if (ItemStack.isSameItem(toMatch, inputItem)) {
           matchedItems.set(i, inputItem.copyWithCount(toMatch.getCount()));
+          break;
         }
       }
     }
