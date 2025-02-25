@@ -71,6 +71,11 @@ public class AnimatedTab extends AbstractWidget {
     isOpen = !isOpen;
   }
   
+  // Method to check if the tab is open
+  public boolean isOpen() {
+    return isOpen;
+  }
+  
   // Exponential easing function for smoother transition
   private float ease(float current, float target, float speed) {
     return current + (target - current) * (1 - (float) Math.exp(-speed));
@@ -105,12 +110,12 @@ public class AnimatedTab extends AbstractWidget {
     int startY = this.getY();
     
     switch (this.position) {
-      case TOP_LEFT:
+      case TOP_RIGHT:
         // Expand rightward and downward
         // No changes needed; this is the default behavior
         break;
       
-      case TOP_RIGHT:
+      case TOP_LEFT:
         // Expand leftward and downward from the top-right corner
         startX = (int) (this.getX() + this.width - animatedWidth);  // Start expanding leftwards
         break;
