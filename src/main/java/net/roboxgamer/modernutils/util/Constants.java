@@ -56,4 +56,8 @@ public class Constants {
   public interface ISidedMachine {
     SideManager getSideManager();
   }
+  
+  public interface IAddonSupport {
+    AddonManager getAddonManager();
+  }
 }

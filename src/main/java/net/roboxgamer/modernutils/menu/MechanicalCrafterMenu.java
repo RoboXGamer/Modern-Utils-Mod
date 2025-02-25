@@ -13,6 +13,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.roboxgamer.modernutils.block.ModBlocks;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.modernutils.network.SideStatePayload;
+import net.roboxgamer.modernutils.util.AddonManager;
 import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.PackedButtonData;
 import org.jetbrains.annotations.NotNull;
@@ -29,9 +30,9 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   
   // Constants for addon slots positions relative to the animated tab in the screen
   // These need to match the visual positions in the animated tab
-  public static final int ADDON_SLOT_SIZE = 18; // Smaller slot size matching the screen
-  public static final int ADDON_SLOT_PADDING = 4;
-  public static final int ADDON_TAB_BUTTON_PADDING = 24 + 2;
+  public static final int ADDON_SLOT_SIZE = AddonManager.ADDON_SLOT_SIZE; // Now using AddonManager's constant
+  public static final int ADDON_SLOT_PADDING = AddonManager.ADDON_SLOT_PADDING; // Now using AddonManager's constant
+  public static final int ADDON_TAB_BUTTON_PADDING = AddonManager.ADDON_TAB_BUTTON_PADDING; // Now using AddonManager's constant
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
   
@@ -152,13 +153,13 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
       ItemStack stackInSlot = slot.getItem();
       itemstack = stackInSlot.copy();
       
-      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT + 10;  // Adjust for addon slots
+      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + this.blockEntity.getAddonManager().ADDON_SLOTS_COUNT + 10;  // Adjust for addon slots
       int playerHotbarStart = playerInventoryStart + 27;
       int playerHotbarEnd = playerHotbarStart + 9;
       
       // Calculate the range of addon slot indices
       int addonStartIndex = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10;
-      int addonEndIndex = addonStartIndex + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT;
+      int addonEndIndex = addonStartIndex + this.blockEntity.getAddonManager().ADDON_SLOTS_COUNT;
       
       // Moving from addon slots to player inventory
       if (index >= addonStartIndex && index < addonEndIndex) {
@@ -183,13 +184,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
       // Moving from player inventory to input slots or addon slots
       else if (index >= playerInventoryStart) {
         // Try to move to addon slots if it's a valid upgrade
-        if (stackInSlot.getItem() == Items.COAL_BLOCK ||
-            stackInSlot.getItem() == Items.IRON_BLOCK ||
-            stackInSlot.getItem() == Items.GOLD_BLOCK ||
-            stackInSlot.getItem() == Items.REDSTONE_BLOCK ||
-            stackInSlot.getItem() == Items.DIAMOND_BLOCK ||
-            stackInSlot.getItem() == Items.NETHERITE_BLOCK ||
-            stackInSlot.getItem() == Items.AMETHYST_BLOCK) {
+        if (blockEntity.getAddonManager().isAllowedItem(stackInSlot.getItem())) {
           if (this.moveItemStackTo(stackInSlot, addonStartIndex, addonEndIndex, false)) {
             // Success
           } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {

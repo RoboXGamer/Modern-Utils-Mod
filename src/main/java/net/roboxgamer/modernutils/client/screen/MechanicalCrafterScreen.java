@@ -24,6 +24,7 @@ import net.roboxgamer.modernutils.menu.OutputSlotItemHandler;
 import net.roboxgamer.modernutils.network.RedstoneModePayload;
 import net.roboxgamer.modernutils.network.RemainItemTogglePayload;
 import net.roboxgamer.modernutils.network.SlotStatePayload;
+import net.roboxgamer.modernutils.util.AddonManager;
 import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.RedstoneManager;
 import org.jetbrains.annotations.NotNull;
@@ -50,7 +51,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       ModernUtilsMod.location("redstone_mode_3")
   };
   private static final ResourceLocation DISABLED_SLOT_LOCATION_SPRITE = ResourceLocation.withDefaultNamespace("container/crafter/disabled_slot");
-  private static final ResourceLocation ADDON_SLOT_LOCATION_SPRITE = ResourceLocation.withDefaultNamespace("container/slot");
+  private static final ResourceLocation ADDON_SLOT_LOCATION_SPRITE = AddonManager.ADDON_SLOT_LOCATION_SPRITE;
   private static final Component DISABLED_SLOT_TOOLTIP = Component.translatable("gui.togglable_slot");
   
   private final BlockPos position;
@@ -406,7 +407,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   public void renderSlot(@NotNull GuiGraphics guiGraphics, @NotNull Slot slot) {
     // Define the range of slot indices for addon slots
     int addonStartIndex = MechanicalCrafterMenu.INPUT_SLOTS_COUNT + MechanicalCrafterMenu.OUTPUT_SLOTS_COUNT + 10;  // 10 is for crafting slots
-    int addonEndIndex = addonStartIndex + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT;
+    int addonEndIndex = addonStartIndex + this.blockEntity.getAddonManager().ADDON_SLOTS_COUNT;
     
     // Check if this slot is an addon slot
     if (slot.index >= addonStartIndex && slot.index < addonEndIndex) {
