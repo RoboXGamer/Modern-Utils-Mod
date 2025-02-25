@@ -12,6 +12,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -49,6 +50,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       ModernUtilsMod.location("redstone_mode_3")
   };
   private static final ResourceLocation DISABLED_SLOT_LOCATION_SPRITE = ResourceLocation.withDefaultNamespace("container/crafter/disabled_slot");
+  private static final ResourceLocation ADDON_SLOT_LOCATION_SPRITE = ResourceLocation.withDefaultNamespace("container/slot");
   private static final Component DISABLED_SLOT_TOOLTIP = Component.translatable("gui.togglable_slot");
   
   private final BlockPos position;
@@ -63,8 +65,10 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private Button remainingToggleBtn;
   private ImageButton redstoneModeButton;
   private AnimatedTab SideConfigTab;
+  private AnimatedTab AddonTab;
   private ExtendedButton autoImportBtn;
   private ExtendedButton sideConfigBtn;
+  private ExtendedButton addonConfigBtn;
   private ExtendedButton autoExportBtn;
   private ExtendedButton upSideBtn;
   private ExtendedButton downSideBtn;
@@ -148,6 +152,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     );
     addRenderableWidget(SideConfigTab);
     
+    // Create addon tab in top right corner
+    this.AddonTab = new AnimatedTab(
+        46, 68, Component.empty(), ExtendedButton.WidgetPosition.TOP_RIGHT
+    );
+    addRenderableWidget(AddonTab);
+    
     this.sideConfigBtn = new ExtendedButton(
         "Config_Btn",
         24, 24,
@@ -176,6 +186,34 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     };
     addRenderableWidget(this.sideConfigBtn);
     
+    // Create addon config button in top right
+    this.addonConfigBtn = new ExtendedButton(
+        "AddonConfig_Btn",
+        24, 24,
+        Component.literal("Addons"),
+        true,  // Optional icon
+        ExtendedButton.WidgetPosition.TOP_RIGHT,
+        (button, clickAction, mouseX, mouseY) -> {
+          AddonTab.toggleOpen();
+        },
+        this.player
+    ){
+      @Override
+      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, ExtendedButton extendedButton) {
+        float scale = 1;
+        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
+        
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
+        guiGraphics.pose().scale(scale, scale, 1);
+        guiGraphics.renderFakeItem(Items.DIAMOND_BLOCK.getDefaultInstance(),
+                                   0,
+                                   0
+        );
+        guiGraphics.pose().popPose();
+      }
+    };
+    addRenderableWidget(this.addonConfigBtn);
     
     this.autoImportBtn = new ExtendedButton(
         "AutoImportBtn",
@@ -366,20 +404,40 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   
   @Override
   public void renderSlot(@NotNull GuiGraphics guiGraphics, @NotNull Slot slot) {
-    if (slot instanceof OutputSlotItemHandler outputSlot && this.menu.isSlotDisabled(slot.getSlotIndex())) {
-      this.renderDisabledSlot(guiGraphics, outputSlot);
-      return;
-    }
+    // Define the range of slot indices for addon slots
+    int addonStartIndex = MechanicalCrafterMenu.INPUT_SLOTS_COUNT + MechanicalCrafterMenu.OUTPUT_SLOTS_COUNT + 10;  // 10 is for crafting slots
+    int addonEndIndex = addonStartIndex + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT;
     
-    super.renderSlot(guiGraphics, slot);
+    // Check if this slot is an addon slot
+    if (slot.index >= addonStartIndex && slot.index < addonEndIndex) {
+      // Only render addon slots when the addon tab is open
+      if (AddonTab.isOpen()) {
+        this.renderAddonSlot(guiGraphics, slot);
+        super.renderSlot(guiGraphics, slot);
+      }
+    } 
+    // Handle disabled output slots
+    else if (slot instanceof OutputSlotItemHandler outputSlot && this.menu.isSlotDisabled(slot.getSlotIndex())) {
+      this.renderDisabledSlot(guiGraphics, outputSlot);
+      super.renderSlot(guiGraphics, outputSlot);
+    }
+    // Render other slots normally
+    else {
+      super.renderSlot(guiGraphics, slot);
+    }
   }
   
   private void renderDisabledSlot(GuiGraphics guiGraphics, OutputSlotItemHandler slot) {
     guiGraphics.blitSprite(DISABLED_SLOT_LOCATION_SPRITE, slot.x - 1, slot.y - 1, 18, 18);
   }
   
+  private void renderAddonSlot(GuiGraphics guiGraphics, Slot slot) {
+    guiGraphics.blitSprite(ADDON_SLOT_LOCATION_SPRITE, slot.x - 1, slot.y - 1, 18, 18);
+  }
+  
   @Override
   protected void slotClicked(@NotNull Slot slot, int slotId, int mouseButton, @NotNull ClickType type) {
+    // Handle output slots with special behavior
     if (slot instanceof OutputSlotItemHandler && !slot.hasItem() && !this.player.isSpectator()) {
       switch (type) {
         case PICKUP:
@@ -395,8 +453,12 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
             this.enableSlot(slotId);
           }
       }
+      super.slotClicked(slot, slotId, mouseButton, type);
     }
-    super.slotClicked(slot, slotId, mouseButton, type);
+    // Normal slots
+    else {
+      super.slotClicked(slot, slotId, mouseButton, type);
+    }
   }
   
   private void enableSlot(int slot) {

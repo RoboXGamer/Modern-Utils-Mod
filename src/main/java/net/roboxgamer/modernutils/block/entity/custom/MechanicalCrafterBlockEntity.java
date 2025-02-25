@@ -51,9 +51,8 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
 
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
-  public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-  private static final int RESULT_SLOT = 0;
+  public static final int RESULT_SLOT = 0;
   
   private static final int CRAFTING_TIME = 100; // 100% progress for a complete craft
   private int craftingProgress = 0; // Current progress from 0-100%
@@ -64,7 +63,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
   private static final int DATA_SIZE = 10; // Total size of ContainerData (9 slot states + 1 progress)
   
   // Addon configuration
-  public static final int ADDON_SLOTS_COUNT = 1;
+  public static final int ADDON_SLOTS_COUNT = 4;
   // Define all valid speed upgrade blocks with their corresponding speed multipliers
   private static final Map<Item, Integer> SPEED_UPGRADES = Map.of(
       Items.COAL_BLOCK, 2,             // 2x speed
@@ -909,7 +908,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     
     // Load addon slots if they exist
     if (tag.contains("addonInv")) {
-      this.addonSlots.deserializeNBT(registries, tag.getCompound("addonInv"));
+        this.addonSlots.deserializeNBT(registries, tag.getCompound("addonInv"));
     }
 
     // Load additional state variables
@@ -1015,11 +1014,27 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     // Set default crafting speed
     this.craftingSpeed = 1;
     
-    // Check for speed upgrades in addon slots
-    ItemStack addon = this.addonSlots.getStackInSlot(0);
-    if (!addon.isEmpty() && SPEED_UPGRADES.containsKey(addon.getItem())) {
-      // Get the speed multiplier for this item
-      this.craftingSpeed = SPEED_UPGRADES.get(addon.getItem());
+    // Calculate combined speed multiplier from all addon slots
+    int combinedSpeedMultiplier = 0;
+    
+    // Check all 4 addon slots
+    for (int i = 0; i < ADDON_SLOTS_COUNT; i++) {
+      ItemStack addon = this.addonSlots.getStackInSlot(i);
+      if (!addon.isEmpty() && SPEED_UPGRADES.containsKey(addon.getItem())) {
+        // Get the speed multiplier for this item and add it to the combined multiplier
+        int multiplier = SPEED_UPGRADES.get(addon.getItem());
+        // We use addition for the combined effect to avoid excessive acceleration
+        combinedSpeedMultiplier += multiplier;
+      }
+    }
+    
+    // Set the final crafting speed
+    if (craftingSpeed < combinedSpeedMultiplier) {
+      this.craftingSpeed = combinedSpeedMultiplier;
+    }
+    
+    if (this.craftingSpeed > CRAFTING_TIME) {
+      this.craftingSpeed = CRAFTING_TIME;
     }
   }
 }

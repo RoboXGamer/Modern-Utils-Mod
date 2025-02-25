@@ -27,8 +27,13 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   private final ContainerLevelAccess levelAccess;
   private final ContainerData containerData;
   
-  public static final int ADDON_SLOT_X = 104;
-  public static final int ADDON_SLOT_Y = 12;
+  // Constants for addon slots positions relative to the animated tab in the screen
+  // These need to match the visual positions in the animated tab
+  public static final int ADDON_SLOT_SIZE = 18; // Smaller slot size matching the screen
+  public static final int ADDON_SLOT_PADDING = 4;
+  public static final int ADDON_TAB_BUTTON_PADDING = 24 + 2;
+  public static final int INPUT_SLOTS_COUNT = 9;
+  public static final int OUTPUT_SLOTS_COUNT = 9;
   
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity){
     this(containerId, playerInv, blockEntity, new SimpleContainerData(10));
@@ -72,7 +77,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     ItemStackHandler addonItemHandler = blockEntity.getAddonSlotsItemHandler(); // Get addon handler
     MechanicalCrafterBlockEntity.CraftingSlotHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
     //add result slot
-    this.addSlot(new SlotItemHandler(craftingItemHandler, CRAFT_RESULT_SLOT, 98, 36) {
+    this.addSlot(new SlotItemHandler(craftingItemHandler, RESULT_SLOT, 98, 36) {
       @Override
       public boolean mayPlace(@NotNull ItemStack stack) {
         return false;
@@ -100,20 +105,32 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
       this.addSlot(new OutputSlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart,this));
     }
     
-    // Add addon slot
-    this.addSlot(new SlotItemHandler(addonItemHandler, 0, ADDON_SLOT_X + 18, ADDON_SLOT_Y) {
-      @Override
-      public boolean mayPlace(@NotNull ItemStack stack) {
-        // Allow all valid speed upgrades
-        return stack.getItem() == Items.COAL_BLOCK ||
-               stack.getItem() == Items.IRON_BLOCK ||
-               stack.getItem() == Items.GOLD_BLOCK ||
-               stack.getItem() == Items.REDSTONE_BLOCK ||
-               stack.getItem() == Items.DIAMOND_BLOCK ||
-               stack.getItem() == Items.NETHERITE_BLOCK ||
-               stack.getItem() == Items.AMETHYST_BLOCK;
+    // Add addon slots in a 2x2 grid with positions matching the animated tab
+    // These will be rendered in the top-right corner when the addon tab is opened
+    int addonStartX = 176;
+    int addonStartY = 0;
+    
+    for (int row = 0; row < 2; row++) {
+      for (int col = 0; col < 2; col++) {
+        final int slotIndex = row * 2 + col;
+        int xPos = addonStartX + ADDON_SLOT_PADDING + col * (ADDON_SLOT_SIZE + ADDON_SLOT_PADDING);
+        int yPos = addonStartY + ADDON_TAB_BUTTON_PADDING + row * (ADDON_SLOT_SIZE + ADDON_SLOT_PADDING);
+        
+        this.addSlot(new SlotItemHandler(addonItemHandler, slotIndex, xPos, yPos) {
+          @Override
+          public boolean mayPlace(@NotNull ItemStack stack) {
+            // Allow all valid speed upgrades
+            return stack.getItem() == Items.COAL_BLOCK ||
+                   stack.getItem() == Items.IRON_BLOCK ||
+                   stack.getItem() == Items.GOLD_BLOCK ||
+                   stack.getItem() == Items.REDSTONE_BLOCK ||
+                   stack.getItem() == Items.DIAMOND_BLOCK ||
+                   stack.getItem() == Items.NETHERITE_BLOCK ||
+                   stack.getItem() == Items.AMETHYST_BLOCK;
+          }
+        });
       }
-    });
+    }
   }
   
   public boolean isSlotDisabled(int slot) {
@@ -135,12 +152,16 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
       ItemStack stackInSlot = slot.getItem();
       itemstack = stackInSlot.copy();
       
-      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT + 10;  // Adjust for 1 addon slot
+      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT + 10;  // Adjust for addon slots
       int playerHotbarStart = playerInventoryStart + 27;
       int playerHotbarEnd = playerHotbarStart + 9;
       
-      // Moving from addon slot to player inventory
-      if (index == INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10) { // Addon slot index
+      // Calculate the range of addon slot indices
+      int addonStartIndex = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10;
+      int addonEndIndex = addonStartIndex + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT;
+      
+      // Moving from addon slots to player inventory
+      if (index >= addonStartIndex && index < addonEndIndex) {
         if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, true)) {
           return ItemStack.EMPTY;
         }
@@ -159,9 +180,9 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
           return ItemStack.EMPTY;
         }
       }
-      // Moving from player inventory to input slots or addon slot
+      // Moving from player inventory to input slots or addon slots
       else if (index >= playerInventoryStart) {
-        // Try to move to addon slot if it's a valid upgrade
+        // Try to move to addon slots if it's a valid upgrade
         if (stackInSlot.getItem() == Items.COAL_BLOCK ||
             stackInSlot.getItem() == Items.IRON_BLOCK ||
             stackInSlot.getItem() == Items.GOLD_BLOCK ||
@@ -169,9 +190,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
             stackInSlot.getItem() == Items.DIAMOND_BLOCK ||
             stackInSlot.getItem() == Items.NETHERITE_BLOCK ||
             stackInSlot.getItem() == Items.AMETHYST_BLOCK) {
-          if (this.moveItemStackTo(stackInSlot, INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10, 
-                                  INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT + 10, 
-                                  false)) {
+          if (this.moveItemStackTo(stackInSlot, addonStartIndex, addonEndIndex, false)) {
             // Success
           } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
             return ItemStack.EMPTY;
