@@ -17,7 +17,6 @@ import org.jetbrains.annotations.NotNull;
 
 public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
 
-    // Simplified constants for layout
     private static final int SHADOW_OFFSET = 4;
     private static final int SHADOW_COLOR = 0x55000000;
     private static final int CONTAINER_COLOR = 0xCC1A1F2C;
@@ -34,20 +33,16 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
     private static final int HIDDEN_LABEL_POS = 1000;
     private static final int LABEL_PADDING = 8; // Padding below labels
     private static final int CONTENT_TOP_MARGIN = 15; // Space between label and first control
+    private static final int MIN_OFFSET = -16;
+    private static final int MAX_OFFSET = 16;
+    private static final int MIN_SPEED = 2;
+    private static final int MAX_SPEED = 256;
 
     private EditBox offsetXField;
     private EditBox offsetYField;
     private EditBox offsetZField;
-    private ExtendedButton speedUpButton;
-    private ExtendedButton speedDownButton;
-    private ExtendedButton renderOutlineButton;
     private EditBox speedValueField;
-    private ExtendedButton xPlusButton;
-    private ExtendedButton xMinusButton;
-    private ExtendedButton yPlusButton;
-    private ExtendedButton yMinusButton;
-    private ExtendedButton zPlusButton;
-    private ExtendedButton zMinusButton;
+    private ExtendedButton renderOutlineButton;
 
     public MagicBlockScreen(MagicBlockMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -74,13 +69,13 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
             switch (i) {
                 case 0 -> setupSpeedControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT);
                 case 1 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT,
-                        offsetXField, xPlusButton, xMinusButton, menu.blockEntity::getOffsetX, menu.blockEntity::setOffsetX,
+                        "X", menu.blockEntity::getOffsetX, menu.blockEntity::setOffsetX,
                         value -> new MagicBlockSettingsUpdatePayload(menu.blockEntity.getBlockPos(), Optional.empty(), Optional.of(value), Optional.empty(), Optional.empty(), Optional.empty()));
                 case 2 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT,
-                        offsetYField, yPlusButton, yMinusButton, menu.blockEntity::getOffsetY, menu.blockEntity::setOffsetY,
+                        "Y", menu.blockEntity::getOffsetY, menu.blockEntity::setOffsetY,
                         value -> new MagicBlockSettingsUpdatePayload(menu.blockEntity.getBlockPos(), Optional.empty(), Optional.empty(), Optional.of(value), Optional.empty(), Optional.empty()));
                 case 3 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT,
-                        offsetZField, zPlusButton, zMinusButton, menu.blockEntity::getOffsetZ, menu.blockEntity::setOffsetZ,
+                        "Z", menu.blockEntity::getOffsetZ, menu.blockEntity::setOffsetZ,
                         value -> new MagicBlockSettingsUpdatePayload(menu.blockEntity.getBlockPos(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(value), Optional.empty()));
             }
         }
@@ -111,38 +106,91 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
     private void setupSpeedControls(int centerX, int startY, int btnWidth, int valWidth, int valHeight) {
         int spacing = SPACING;
         
+        // Speed value field
+        speedValueField = createSpeedField(centerX - valWidth / 2, startY + BUTTON_HEIGHT + spacing, valWidth, valHeight);
+        addRenderableWidget(speedValueField);
+        
         // Speed up button
-        speedUpButton = addRenderableWidget(new ExtendedButton(
-            "SpeedUpBtn",
-            btnWidth, MARGIN,
-            Component.literal("+"),
-            false,
-            ExtendedButton.WidgetPosition.NONE,
-            (button, clickAction, mouseX, mouseY) -> {
-                int newSpeed = menu.blockEntity.incrementSpeed();
-                menu.blockEntity.setSpeed(newSpeed);
-                PacketDistributor.sendToServer(new MagicBlockSettingsUpdatePayload(
-                    menu.blockEntity.getBlockPos(),
-                    Optional.of(newSpeed),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty()
-                ));
-                speedValueField.setValue(String.valueOf(menu.blockEntity.getSpeed()));
-            },
-            this.minecraft.player));
+        SpeedButton speedUpButton = new SpeedButton(
+            "Speed", true, speedValueField, btnWidth, BUTTON_HEIGHT
+        );
         speedUpButton.setX(centerX - btnWidth / 2);
         speedUpButton.setY(startY);
+        addRenderableWidget(speedUpButton);
         
-        // Speed value field
-        speedValueField = new EditBox(this.font, centerX - valWidth / 2, 
-            startY + MARGIN + spacing, valWidth, valHeight, Component.empty());
-        speedValueField.setValue(String.valueOf(menu.blockEntity.getSpeed()));
-        speedValueField.setResponder(s -> {
+        // Speed down button
+        SpeedButton speedDownButton = new SpeedButton(
+            "Speed", false, speedValueField, btnWidth, BUTTON_HEIGHT
+        );
+        speedDownButton.setX(centerX - btnWidth / 2);
+        speedDownButton.setY(startY + BUTTON_HEIGHT + spacing + valHeight + spacing);
+        addRenderableWidget(speedDownButton);
+    }
+
+    private void setupOffsetControls(
+            int centerX, int startY, int btnWidth, int valWidth, int valHeight,
+            String axis, Supplier<Integer> getter, Consumer<Integer> setter,
+            Function<Integer, MagicBlockSettingsUpdatePayload> payloadCreator) {
+        
+        int spacing = SPACING;
+        
+        // Value field
+        EditBox field = createOffsetField(
+            centerX - valWidth / 2, startY + BUTTON_HEIGHT + spacing, 
+            valWidth, valHeight, getter, setter, payloadCreator
+        );
+        addRenderableWidget(field);
+        
+        // Store field reference
+        switch (axis) {
+            case "X" -> offsetXField = field;
+            case "Y" -> offsetYField = field;
+            case "Z" -> offsetZField = field;
+        }
+
+        // Plus button
+        OffsetButton plusButton = new OffsetButton(
+            axis, true, field, setter, payloadCreator, btnWidth, BUTTON_HEIGHT
+        );
+        plusButton.setX(centerX - btnWidth / 2);
+        plusButton.setY(startY);
+        addRenderableWidget(plusButton);
+
+        // Minus button
+        OffsetButton minusButton = new OffsetButton(
+            axis, false, field, setter, payloadCreator, btnWidth, BUTTON_HEIGHT
+        );
+        minusButton.setX(centerX - btnWidth / 2);
+        minusButton.setY(startY + BUTTON_HEIGHT + spacing + valHeight + spacing);
+        addRenderableWidget(minusButton);
+    }
+    
+    private EditBox createOffsetField(
+            int x, int y, int width, int height,
+            Supplier<Integer> getter, Consumer<Integer> setter,
+            Function<Integer, MagicBlockSettingsUpdatePayload> payloadCreator) {
+        
+        EditBox field = new EditBox(this.font, x, y, width, height, Component.empty());
+        field.setValue(String.valueOf(getter.get()));
+        field.setResponder(s -> {
             try {
                 int value = Integer.parseInt(s);
-                if (value >= 0 && value <= 20) {
+                if (value >= MIN_OFFSET && value <= MAX_OFFSET) {
+                    setter.accept(value);
+                    PacketDistributor.sendToServer(payloadCreator.apply(value));
+                }
+            } catch (NumberFormatException ignored) {}
+        });
+        return field;
+    }
+
+    private EditBox createSpeedField(int x, int y, int width, int height) {
+        EditBox field = new EditBox(this.font, x, y, width, height, Component.empty());
+        field.setValue(String.valueOf(menu.blockEntity.getSpeed()));
+        field.setResponder(s -> {
+            try {
+                int value = Integer.parseInt(s);
+                if (value >= MIN_SPEED && value <= MAX_SPEED) {
                     menu.blockEntity.setSpeed(value);
                     PacketDistributor.sendToServer(new MagicBlockSettingsUpdatePayload(
                         menu.blockEntity.getBlockPos(),
@@ -155,101 +203,7 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
                 }
             } catch (NumberFormatException ignored) {}
         });
-        addRenderableWidget(speedValueField);
-
-        // Speed down button
-        speedDownButton = addRenderableWidget(new ExtendedButton(
-            "SpeedDownBtn", 
-            btnWidth, MARGIN,
-            Component.literal("-"),
-            false,
-            ExtendedButton.WidgetPosition.NONE,
-            (button, clickAction, mouseX, mouseY) -> {
-                int newSpeed = menu.blockEntity.decrementSpeed();
-                menu.blockEntity.setSpeed(newSpeed);
-                PacketDistributor.sendToServer(new MagicBlockSettingsUpdatePayload(
-                    menu.blockEntity.getBlockPos(),
-                    Optional.of(newSpeed),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty(),
-                    Optional.empty()
-                ));
-                speedValueField.setValue(String.valueOf(menu.blockEntity.getSpeed()));
-            },
-            this.minecraft.player));
-        speedDownButton.setX(centerX - btnWidth / 2);
-        speedDownButton.setY(startY + MARGIN + spacing + valHeight + spacing);
-    }
-
-    private void setupOffsetControls(
-            int centerX, int startY, int btnWidth, int valWidth, int valHeight,
-            EditBox field, ExtendedButton plusBtn, ExtendedButton minusBtn,
-            Supplier<Integer> getter, Consumer<Integer> setter,
-            Function<Integer, MagicBlockSettingsUpdatePayload> payloadCreator) {
-        
-        int spacing = SPACING;
-
-        // Plus button
-        EditBox finalField = field;
-        plusBtn = addRenderableWidget(new ExtendedButton(
-            "PlusBtn",
-            btnWidth, MARGIN,
-            Component.literal("+"),
-            false,
-            ExtendedButton.WidgetPosition.NONE,
-            (button, clickAction, mouseX, mouseY) -> {
-                try {
-                    int cur = Integer.parseInt(finalField.getValue());
-                    if (cur < 16) {
-                        cur++;
-                        finalField.setValue(String.valueOf(cur));
-                        setter.accept(cur);
-                        PacketDistributor.sendToServer(payloadCreator.apply(cur));
-                    }
-                } catch (NumberFormatException ignored) {}
-            },
-            this.minecraft.player));
-        plusBtn.setX(centerX - btnWidth / 2);
-        plusBtn.setY(startY);
-
-        // Value field
-        field = new EditBox(this.font, centerX - valWidth / 2, 
-            startY + MARGIN + spacing, valWidth, valHeight, Component.empty());
-        field.setValue(String.valueOf(getter.get()));
-        field.setResponder(s -> {
-            try {
-                int value = Integer.parseInt(s);
-                if (value >= -16 && value <= 16) {
-                    setter.accept(value);
-                    PacketDistributor.sendToServer(payloadCreator.apply(value));
-                }
-            } catch (NumberFormatException ignored) {}
-        });
-        addRenderableWidget(field);
-
-        // Minus button
-        EditBox finalField1 = field;
-        minusBtn = addRenderableWidget(new ExtendedButton(
-            "MinusBtn",
-            btnWidth, MARGIN,
-            Component.literal("-"),
-            false,
-            ExtendedButton.WidgetPosition.NONE,
-            (button, clickAction, mouseX, mouseY) -> {
-                try {
-                    int cur = Integer.parseInt(finalField1.getValue());
-                    if (cur > -16) {
-                        cur--;
-                        finalField1.setValue(String.valueOf(cur));
-                        setter.accept(cur);
-                        PacketDistributor.sendToServer(payloadCreator.apply(cur));
-                    }
-                } catch (NumberFormatException ignored) {}
-            },
-            this.minecraft.player));
-        minusBtn.setX(centerX - btnWidth / 2);
-        minusBtn.setY(startY + MARGIN + spacing + valHeight + spacing);
+        return field;
     }
 
     private Component getOutlineButtonText(boolean state) {
@@ -307,6 +261,80 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
             int panelX = leftPos + MARGIN + (i * (panelWidth + SPACING));
             int panelY = topPos + HEADER_HEIGHT;
             guiGraphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x0DFFFFFF);
+        }
+    }
+    
+    // Custom button for offset controls
+    private class OffsetButton extends ExtendedButton {
+        private final boolean isPlus;
+        private final EditBox targetField;
+        private final Consumer<Integer> setter;
+        private final Function<Integer, MagicBlockSettingsUpdatePayload> payloadCreator;
+
+        public OffsetButton(
+                String axis, boolean isPlus, EditBox targetField,
+                Consumer<Integer> setter,
+                Function<Integer, MagicBlockSettingsUpdatePayload> payloadCreator,
+                int width, int height) {
+            super(
+                axis + (isPlus ? "Plus" : "Minus") + "Btn",
+                width, height,
+                Component.literal(isPlus ? "+" : "-"),
+                false,
+                ExtendedButton.WidgetPosition.NONE,
+                (button, clickAction, mouseX, mouseY) -> {
+                    try {
+                        int cur = Integer.parseInt(targetField.getValue());
+                        if (isPlus ? cur < MAX_OFFSET : cur > MIN_OFFSET) {
+                            cur = isPlus ? cur + 1 : cur - 1;
+                            targetField.setValue(String.valueOf(cur));
+                            setter.accept(cur);
+                            PacketDistributor.sendToServer(payloadCreator.apply(cur));
+                        }
+                    } catch (NumberFormatException ignored) {}
+                },
+                MagicBlockScreen.this.minecraft.player);
+            
+            this.isPlus = isPlus;
+            this.targetField = targetField;
+            this.setter = setter;
+            this.payloadCreator = payloadCreator;
+        }
+    }
+    
+    // Custom button for speed controls
+    private class SpeedButton extends ExtendedButton {
+        private final boolean isPlus;
+        private final EditBox targetField;
+
+        public SpeedButton(
+                String id, boolean isPlus, EditBox targetField,
+                int width, int height) {
+            super(
+                id + (isPlus ? "Up" : "Down") + "Btn",
+                width, height,
+                Component.literal(isPlus ? "+" : "-"),
+                false,
+                ExtendedButton.WidgetPosition.NONE,
+                (button, clickAction, mouseX, mouseY) -> {
+                    int newSpeed = isPlus ? 
+                        MagicBlockScreen.this.menu.blockEntity.incrementSpeed() : 
+                        MagicBlockScreen.this.menu.blockEntity.decrementSpeed();
+                    MagicBlockScreen.this.menu.blockEntity.setSpeed(newSpeed);
+                    PacketDistributor.sendToServer(new MagicBlockSettingsUpdatePayload(
+                        MagicBlockScreen.this.menu.blockEntity.getBlockPos(),
+                        Optional.of(newSpeed),
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty(),
+                        Optional.empty()
+                    ));
+                    targetField.setValue(String.valueOf(MagicBlockScreen.this.menu.blockEntity.getSpeed()));
+                },
+                MagicBlockScreen.this.minecraft.player);
+            
+            this.isPlus = isPlus;
+            this.targetField = targetField;
         }
     }
 }
