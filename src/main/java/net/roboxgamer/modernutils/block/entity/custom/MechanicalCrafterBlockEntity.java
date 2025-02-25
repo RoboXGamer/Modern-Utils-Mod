@@ -19,13 +19,12 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
@@ -34,7 +33,6 @@ import net.roboxgamer.modernutils.ModernUtilsMod;
 import net.roboxgamer.modernutils.block.entity.ModBlockEntities;
 import net.roboxgamer.modernutils.menu.MechanicalCrafterMenu;
 import net.roboxgamer.modernutils.network.ItemStackPayload;
-import net.roboxgamer.modernutils.network.SlotStatePayload;
 import net.roboxgamer.modernutils.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,11 +40,10 @@ import net.roboxgamer.modernutils.util.Constants.IRedstoneConfigurable;
 import net.roboxgamer.modernutils.util.Constants.ISidedMachine;
 
 import java.util.*;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_BLACKLISTED_RECIPES;
 import static net.roboxgamer.modernutils.util.Constants.MECHANICAL_CRAFTER_SPECIAL_RECIPES;
-import static net.roboxgamer.modernutils.util.RedstoneManager.REDSTONE_MODE_MAP;
 
 public class MechanicalCrafterBlockEntity extends BlockEntity
     implements MenuProvider, IRedstoneConfigurable, ISidedMachine {
@@ -57,6 +54,29 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
   public static final int CRAFT_RESULT_SLOT = 0;
   public static final int[] CRAFT_RECIPE_SLOTS = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
   private static final int RESULT_SLOT = 0;
+  
+  private static final int CRAFTING_TIME = 100; // 100% progress for a complete craft
+  private int craftingProgress = 0; // Current progress from 0-100%
+  private int craftingSpeed = 1; // Speed multiplier for crafting (1 = normal, 2 = 2x speed, etc.)
+  
+  // ContainerData indices
+  private static final int PROGRESS_INDEX = 9; // Using index 9 for progress (after the 9 slot state indices)
+  private static final int DATA_SIZE = 10; // Total size of ContainerData (9 slot states + 1 progress)
+  
+  // Addon configuration
+  public static final int ADDON_SLOTS_COUNT = 1;
+  // Define all valid speed upgrade blocks with their corresponding speed multipliers
+  private static final Map<Item, Integer> SPEED_UPGRADES = Map.of(
+      Items.COAL_BLOCK, 2,             // 2x speed
+      Items.IRON_BLOCK, 4,             // 4x speed 
+      Items.GOLD_BLOCK, 8,             // 8x speed
+      Items.REDSTONE_BLOCK, 12,        // 12x speed
+      Items.DIAMOND_BLOCK, 20,         // 20x speed
+      Items.NETHERITE_BLOCK, 50,       // 50x speed
+      Items.AMETHYST_BLOCK, 100        // Instant crafting (100x speed - completes in 1 tick)
+  );
+  // For validation, just need the keys/items
+  private static final List<Item> VALID_SPEED_UPGRADES = SPEED_UPGRADES.keySet().stream().toList();
 
   private int tc = 0;
   private CustomRecipeExtender<?> recipe;
@@ -138,6 +158,28 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     }
   };
   private final CraftingSlotHandler craftingSlots = new CraftingSlotHandler(10);
+  
+  // Add a new handler for addon slots
+  private final CustomItemStackHandler addonSlots = new CustomItemStackHandler(ADDON_SLOTS_COUNT, this) {
+    @Override
+    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+      // Only allow items from the valid speed upgrades list
+      return VALID_SPEED_UPGRADES.contains(stack.getItem());
+    }
+    
+    @Override
+    public int getSlotLimit(int slot) {
+      // Limit to 1 item per addon slot
+      return 1;
+    }
+    
+    @Override
+    protected void onContentsChanged(int slot) {
+      super.onContentsChanged(slot);
+      // Update crafting speed when addon contents change
+      updateCraftingSpeed();
+    }
+  };
 
   // Combine handler of input and output slots
   CombinedInvWrapper combinedInvHandler = new CombinedInvWrapper(inputSlots, outputSlots) {
@@ -236,7 +278,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
   public MechanicalCrafterBlockEntity(BlockPos pos, BlockState blockState) {
     super(ModBlockEntities.MECHANICAL_CRAFTER_BE.get(), pos, blockState);
     this.containerData = new ContainerData() {
-      private final int[] slotStates = new int[9];
+      private final int[] slotStates = new int[DATA_SIZE];
 
       @Override
       public int get(int index) {
@@ -250,7 +292,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
 
       @Override
       public int getCount() {
-        return 9;
+        return DATA_SIZE;
       }
     };
   }
@@ -299,19 +341,31 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     }
     // *** Logic for crafting ***
 
-    if (everySecond(0.5)) { // Every 10 ticks
+    
       if (canCraft()) {
-        // ModernUtils.LOGGER.info("Can Craft!");
-        craft();
+        // Increment progress based on crafting speed (1 = normal speed, 2 = 2x speed, etc.)
+        craftingProgress += craftingSpeed;
+        if (craftingProgress >= CRAFTING_TIME) {
+          // When we reach 100% progress, perform the craft and reset progress
+          craft();
+          craftingProgress = 0;
+        }
       } else {
+        // Reset progress if we can't craft
+        craftingProgress = 0;
+        
         if (sideManager.isAutoImportEnabled()) {
           autoImport();
           if (canCraft()) {
-            craft();
+            // Start progress after successful auto-import, applying crafting speed
+            craftingProgress += craftingSpeed;
           }
         }
       }
-    }
+      
+      // Update the progress in the ContainerData
+      this.containerData.set(PROGRESS_INDEX, this.craftingProgress);
+    
     if (sideManager.isAutoExportEnabled()) {
       sideManager.autoExport(this.outputSlots);
     }
@@ -777,9 +831,12 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     modData.put("inputInv", this.inputSlots.serializeNBT(registries));
     modData.put("outputInv", this.outputSlots.serializeNBT(registries));
     modData.put("craftingInv", this.craftingSlots.serializeNBT(registries));
+    modData.put("addonInv", this.addonSlots.serializeNBT(registries)); // Save addon slots
 
     // Store additional state variables
     modData.putInt("remainItemToggleValue", this.remainItemToggleValue);
+    modData.putInt("craftingProgress", this.craftingProgress);
+    modData.putInt("craftingSpeed", this.craftingSpeed);  // Save crafting speed
 
     // Save the result if it exists
     if (this.result != null && !this.result.isEmpty()) {
@@ -849,12 +906,29 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     this.inputSlots.deserializeNBT(registries, tag.getCompound("inputInv"));
     this.outputSlots.deserializeNBT(registries, tag.getCompound("outputInv"));
     this.craftingSlots.deserializeNBT(registries, tag.getCompound("craftingInv"));
+    
+    // Load addon slots if they exist
+    if (tag.contains("addonInv")) {
+      this.addonSlots.deserializeNBT(registries, tag.getCompound("addonInv"));
+    }
 
     // Load additional state variables
     this.remainItemToggleValue = tag.getInt("remainItemToggleValue");
+    this.craftingProgress = tag.getInt("craftingProgress");
+    
+    // Load crafting speed if it exists, otherwise use default
+    if (tag.contains("craftingSpeed")) {
+      this.craftingSpeed = tag.getInt("craftingSpeed");
+    } else {
+      updateCraftingSpeed(); // Calculate based on addons
+    }
+    
     this.redstoneManager.loadFromTag(tag);
     this.sideManager.loadFromTag(tag);
     this.result = ItemStack.parseOptional(registries, tag.getCompound("result"));
+
+    // Set crafting progress in ContainerData
+    this.containerData.set(PROGRESS_INDEX, this.craftingProgress);
 
     // Load the recipe if it exists
     if (tag.contains("recipe")) {
@@ -909,5 +983,43 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
   public @Nullable AbstractContainerMenu createMenu(int containerId, @NotNull Inventory playerInventory,
       @NotNull Player player) {
     return new MechanicalCrafterMenu(containerId, playerInventory, this, this.containerData);
+  }
+
+  public int getCraftingProgress() {
+    return this.craftingProgress;
+  }
+  
+  /**
+   * Helper method to get the crafting progress from the ContainerData.
+   * This can be used in the menu class to access the current progress.
+   */
+  public static int getProgressFromContainerData(ContainerData data) {
+    return data.get(PROGRESS_INDEX);
+  }
+  
+  /**
+   * Helper method to get the maximum crafting time.
+   * This can be used in the menu class for progress calculations.
+   */
+  public static int getMaxCraftingTime() {
+    return CRAFTING_TIME;
+  }
+
+  // Add method to expose the addon slots
+  public CustomItemStackHandler getAddonSlotsItemHandler() {
+    return this.addonSlots;
+  }
+  
+  // Method to update crafting speed based on addon slots
+  private void updateCraftingSpeed() {
+    // Set default crafting speed
+    this.craftingSpeed = 1;
+    
+    // Check for speed upgrades in addon slots
+    ItemStack addon = this.addonSlots.getStackInSlot(0);
+    if (!addon.isEmpty() && SPEED_UPGRADES.containsKey(addon.getItem())) {
+      // Get the speed multiplier for this item
+      this.craftingSpeed = SPEED_UPGRADES.get(addon.getItem());
+    }
   }
 }

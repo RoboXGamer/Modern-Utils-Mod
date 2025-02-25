@@ -6,6 +6,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -26,8 +27,11 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   private final ContainerLevelAccess levelAccess;
   private final ContainerData containerData;
   
+  public static final int ADDON_SLOT_X = 104;
+  public static final int ADDON_SLOT_Y = 12;
+  
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity){
-    this(containerId, playerInv, blockEntity, new SimpleContainerData(9));
+    this(containerId, playerInv, blockEntity, new SimpleContainerData(10));
   }
   //Server Constructor
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity, ContainerData data) {
@@ -65,6 +69,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     var outputSlotsYStart = 122;
     ItemStackHandler inputItemHandler = blockEntity.getInputSlotsItemHandler();
     ItemStackHandler outputItemHandler = blockEntity.getOutputSlotsItemHandler();
+    ItemStackHandler addonItemHandler = blockEntity.getAddonSlotsItemHandler(); // Get addon handler
     MechanicalCrafterBlockEntity.CraftingSlotHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
     //add result slot
     this.addSlot(new SlotItemHandler(craftingItemHandler, CRAFT_RESULT_SLOT, 98, 36) {
@@ -94,6 +99,21 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     for (int col = 0; col < OUTPUT_SLOTS_COUNT; col++) {
       this.addSlot(new OutputSlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart,this));
     }
+    
+    // Add addon slot
+    this.addSlot(new SlotItemHandler(addonItemHandler, 0, ADDON_SLOT_X + 18, ADDON_SLOT_Y) {
+      @Override
+      public boolean mayPlace(@NotNull ItemStack stack) {
+        // Allow all valid speed upgrades
+        return stack.getItem() == Items.COAL_BLOCK ||
+               stack.getItem() == Items.IRON_BLOCK ||
+               stack.getItem() == Items.GOLD_BLOCK ||
+               stack.getItem() == Items.REDSTONE_BLOCK ||
+               stack.getItem() == Items.DIAMOND_BLOCK ||
+               stack.getItem() == Items.NETHERITE_BLOCK ||
+               stack.getItem() == Items.AMETHYST_BLOCK;
+      }
+    });
   }
   
   public boolean isSlotDisabled(int slot) {
@@ -115,12 +135,19 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
       ItemStack stackInSlot = slot.getItem();
       itemstack = stackInSlot.copy();
       
-      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10;  // Assuming slot indexes: recipe + input + output slots = 10
+      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT + 10;  // Adjust for 1 addon slot
       int playerHotbarStart = playerInventoryStart + 27;
       int playerHotbarEnd = playerHotbarStart + 9;
       
+      // Moving from addon slot to player inventory
+      if (index == INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10) { // Addon slot index
+        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, true)) {
+          return ItemStack.EMPTY;
+        }
+        slot.onQuickCraft(stackInSlot, itemstack);
+      }
       // Moving from output slots to player inventory
-      if (index >= INPUT_SLOTS_COUNT + 10 && index < INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10) {
+      else if (index >= INPUT_SLOTS_COUNT + 10 && index < INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10) {
         if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, true)) {
           return ItemStack.EMPTY;
         }
@@ -132,9 +159,24 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
           return ItemStack.EMPTY;
         }
       }
-      // Moving from player inventory to input slots
+      // Moving from player inventory to input slots or addon slot
       else if (index >= playerInventoryStart) {
-        if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
+        // Try to move to addon slot if it's a valid upgrade
+        if (stackInSlot.getItem() == Items.COAL_BLOCK ||
+            stackInSlot.getItem() == Items.IRON_BLOCK ||
+            stackInSlot.getItem() == Items.GOLD_BLOCK ||
+            stackInSlot.getItem() == Items.REDSTONE_BLOCK ||
+            stackInSlot.getItem() == Items.DIAMOND_BLOCK ||
+            stackInSlot.getItem() == Items.NETHERITE_BLOCK ||
+            stackInSlot.getItem() == Items.AMETHYST_BLOCK) {
+          if (this.moveItemStackTo(stackInSlot, INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10, 
+                                  INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + MechanicalCrafterBlockEntity.ADDON_SLOTS_COUNT + 10, 
+                                  false)) {
+            // Success
+          } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
+            return ItemStack.EMPTY;
+          }
+        } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
           return ItemStack.EMPTY;
         }
       }
@@ -163,6 +205,16 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   
   public MechanicalCrafterBlockEntity getBlockEntity() {
     return this.blockEntity;
+  }
+  
+  /**
+   * Gets the current crafting progress as a value between 0.0 and 1.0.
+   * @return Current progress as a float where 0.0 = 0% and 1.0 = 100%
+   */
+  public float getCraftingProgress() {
+    int currentProgress = MechanicalCrafterBlockEntity.getProgressFromContainerData(this.containerData);
+    int maxProgress = MechanicalCrafterBlockEntity.getMaxCraftingTime();
+    return (float) currentProgress / maxProgress;
   }
   
   @Override

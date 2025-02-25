@@ -74,6 +74,9 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private ExtendedButton frontSideBtn;
   private Map<Constants.Sides, SideConfigButton> sideButtons = new HashMap<>();
   
+  // Animation variables for smooth progress bar
+  private float lastProgress = 0f;
+  private float visualProgress = 0f;
   
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
     super(menu,playerInv,title);
@@ -345,7 +348,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     //renderTransparentBackground(guiGraphics);
     //this.renderScreen(guiGraphics, mouseX, mouseY, partialTick);
     //this.renderWidgets(guiGraphics, mouseX, mouseY, partialTick);
-
+    
+    this.renderProgressBar(guiGraphics, partialTick); // Render the progress bar with partialTick 
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
     this.renderTooltip(guiGraphics, mouseX, mouseY);
     
@@ -409,5 +413,53 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     float f = state ? 1.0F : 0.75F;
     this.player.playSound(SoundEvents.UI_BUTTON_CLICK.value(), 0.4F, f);
     PacketDistributor.sendToServer(new SlotStatePayload(this.menu.getSlot(slot).getSlotIndex(),state,this.menu.getBlockEntity().getBlockPos()));
+  }
+
+  /**
+   * Renders the crafting progress bar at the top of the GUI.
+   * @param guiGraphics The GuiGraphics context
+   * @param partialTick The partial tick time for smooth animation
+   */
+  private void renderProgressBar(GuiGraphics guiGraphics, float partialTick) {
+    // Constants for the progress bar
+    final int BAR_HEIGHT = 6;
+    final int BORDER_THICKNESS = 1;
+    final int BAR_Y_POS = this.topPos - BAR_HEIGHT - 2; // Position above the GUI
+    
+    // Get the current actual progress
+    float currentProgress = this.menu.getCraftingProgress();
+    
+    // If progress decreases (e.g., reset to 0 after crafting), snap immediately
+    if (currentProgress < lastProgress) {
+      visualProgress = currentProgress;
+    } else {
+      // Use partialTick for smooth interpolation between frames
+      float interpolationSpeed = 0.1f; // Lower value = smoother/slower transition
+      visualProgress += (currentProgress - visualProgress) * interpolationSpeed * (1.0f + partialTick);
+    }
+    
+    // Save the current progress for next frame
+    lastProgress = currentProgress;
+    
+    // Calculate the pixel width based on the interpolated progress
+    int progressWidth = (int)(visualProgress * (this.imageWidth - 2)); // -2 for the borders
+    
+    // Draw border (dark gray rectangle)
+    guiGraphics.fill(this.leftPos, BAR_Y_POS, 
+                    this.leftPos + this.imageWidth, BAR_Y_POS + BAR_HEIGHT, 
+                    0xFF555555); // Dark gray border
+    
+    // Draw background (black background behind the progress)
+    guiGraphics.fill(this.leftPos + BORDER_THICKNESS, BAR_Y_POS + BORDER_THICKNESS, 
+                    this.leftPos + this.imageWidth - BORDER_THICKNESS, BAR_Y_POS + BAR_HEIGHT - BORDER_THICKNESS, 
+                    0xFF000000); // Black background
+    
+    // Only draw the progress fill if there is any progress
+    if (progressWidth > 0) {
+      // Draw progress fill (white fill) with the interpolated width
+      guiGraphics.fill(this.leftPos + BORDER_THICKNESS, BAR_Y_POS + BORDER_THICKNESS, 
+                      this.leftPos + BORDER_THICKNESS + progressWidth, BAR_Y_POS + BAR_HEIGHT - BORDER_THICKNESS, 
+                      0xFFFFFFFF); // White fill
+    }
   }
 }
