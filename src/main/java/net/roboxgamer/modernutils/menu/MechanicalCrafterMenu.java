@@ -7,6 +7,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -18,6 +19,8 @@ import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.PackedButtonData;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity.*;
@@ -35,6 +38,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   public static final int ADDON_TAB_BUTTON_PADDING = AddonManager.ADDON_TAB_BUTTON_PADDING; // Now using AddonManager's constant
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
+  private final List<AddonSlotItemHandler> addonSlotHandlers = new ArrayList<>(4);
   
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity){
     this(containerId, playerInv, blockEntity, new SimpleContainerData(10));
@@ -75,7 +79,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     var outputSlotsYStart = 122;
     ItemStackHandler inputItemHandler = blockEntity.getInputSlotsItemHandler();
     ItemStackHandler outputItemHandler = blockEntity.getOutputSlotsItemHandler();
-    ItemStackHandler addonItemHandler = blockEntity.getAddonSlotsItemHandler(); // Get addon handler
+    ItemStackHandler addonItemHandler = blockEntity.getAddonSlotsItemHandler();// Get addon handler
     MechanicalCrafterBlockEntity.CraftingSlotHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
     //add result slot
     this.addSlot(new SlotItemHandler(craftingItemHandler, RESULT_SLOT, 98, 36) {
@@ -116,26 +120,21 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
         final int slotIndex = row * 2 + col;
         int xPos = addonStartX + ADDON_SLOT_PADDING + col * (ADDON_SLOT_SIZE + ADDON_SLOT_PADDING);
         int yPos = addonStartY + ADDON_TAB_BUTTON_PADDING + row * (ADDON_SLOT_SIZE + ADDON_SLOT_PADDING);
-        
-        this.addSlot(new SlotItemHandler(addonItemHandler, slotIndex, xPos, yPos) {
-          @Override
-          public boolean mayPlace(@NotNull ItemStack stack) {
-            // Allow all valid speed upgrades
-            return stack.getItem() == Items.COAL_BLOCK ||
-                   stack.getItem() == Items.IRON_BLOCK ||
-                   stack.getItem() == Items.GOLD_BLOCK ||
-                   stack.getItem() == Items.REDSTONE_BLOCK ||
-                   stack.getItem() == Items.DIAMOND_BLOCK ||
-                   stack.getItem() == Items.NETHERITE_BLOCK ||
-                   stack.getItem() == Items.AMETHYST_BLOCK;
-          }
-        });
+        var addonSlotHandler = new AddonSlotItemHandler(addonItemHandler, slotIndex, xPos, yPos);
+        this.addonSlotHandlers.add(addonSlotHandler);
+        this.addSlot(addonSlotHandler);
       }
     }
   }
   
   public boolean isSlotDisabled(int slot) {
     return slot > -1 && slot < 9 && this.containerData.get(slot) == 1;
+  }
+  
+  public void toggleAddonSlots() {
+    this.addonSlotHandlers.forEach(
+        t -> t.setActive(true)
+    );
   }
   
   //Client Constructor
@@ -184,7 +183,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
       // Moving from player inventory to input slots or addon slots
       else if (index >= playerInventoryStart) {
         // Try to move to addon slots if it's a valid upgrade
-        if (blockEntity.getAddonManager().isAllowedItem(stackInSlot.getItem())) {
+        if (blockEntity.getAddonManager().isAllowedItem(stackInSlot.getItem()) && this.addonSlotHandlers.getFirst().isActive()) {
           if (this.moveItemStackTo(stackInSlot, addonStartIndex, addonEndIndex, false)) {
             // Success
           } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
@@ -279,5 +278,38 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
                                    new SideStatePayload(side, this.blockEntity.getSideManager().getSideState(side), this.blockEntity.getBlockPos())
           );
     return true;
+  }
+  
+  public static class AddonSlotItemHandler extends SlotItemHandler {
+      private boolean active = false;
+      @Override
+      public boolean mayPlace(@NotNull ItemStack stack) {
+      // Allow all valid speed upgrades
+      return stack.getItem() == Items.COAL_BLOCK ||
+          stack.getItem() == Items.IRON_BLOCK ||
+          stack.getItem() == Items.GOLD_BLOCK ||
+          stack.getItem() == Items.REDSTONE_BLOCK ||
+          stack.getItem() == Items.DIAMOND_BLOCK ||
+          stack.getItem() == Items.NETHERITE_BLOCK ||
+          stack.getItem() == Items.AMETHYST_BLOCK;
+    }
+      
+      @Override
+      public boolean isActive() {
+      return active;
+    }
+      
+      public void toggleActive() {
+      this.active = !active;
+    }
+    
+    public void setActive(boolean active) {
+      this.active = active;
+    }
+    
+    public AddonSlotItemHandler(IItemHandler itemHandler, int index, int xPosition, int yPosition) {
+      super(itemHandler, index, xPosition, yPosition);
+    }
+    
   }
 }

@@ -196,6 +196,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         ExtendedButton.WidgetPosition.TOP_RIGHT,
         (button, clickAction, mouseX, mouseY) -> {
           AddonTab.toggleOpen();
+          this.menu.toggleAddonSlots();
         },
         this.player
     ){
