@@ -37,6 +37,7 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
     private static final int MAX_OFFSET = 16;
     private static final int MIN_SPEED = 2;
     private static final int MAX_SPEED = 256;
+    private static final int PANEL_BOTTOM_PADDING = 10; // The extra padding at the bottom of panels
 
     private EditBox offsetXField;
     private EditBox offsetYField;
@@ -58,23 +59,22 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
         this.leftPos = (this.width - this.imageWidth) / 2;
         this.topPos = (this.height - this.imageHeight) / 2;
 
-        // Calculate panel dimensions
-        int panelWidth = (imageWidth - (MARGIN * 2) - (SPACING * (PANEL_COUNT - 1))) / PANEL_COUNT;
+        // Calculate content start Y position
         int contentStartY = topPos + HEADER_HEIGHT + LABEL_PADDING + CONTENT_TOP_MARGIN;
 
-        // Calculate column centers
+        // Setup panels
         for (int i = 0; i < PANEL_COUNT; i++) {
-            int centerX = leftPos + MARGIN + (i * (panelWidth + SPACING)) + (panelWidth / 2);
+            int centerX = getPanelCenterX(i);
             
             switch (i) {
-                case 0 -> setupSpeedControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT);
-                case 1 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT,
+                case 0 -> setupSpeedControls(centerX, contentStartY, BUTTON_WIDTH, getPanelWidth() - SPACING * 2, VALUE_HEIGHT);
+                case 1 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, getPanelWidth() - SPACING * 2, VALUE_HEIGHT,
                         "X", menu.blockEntity::getOffsetX, menu.blockEntity::setOffsetX,
                         value -> new MagicBlockSettingsUpdatePayload(menu.blockEntity.getBlockPos(), Optional.empty(), Optional.of(value), Optional.empty(), Optional.empty(), Optional.empty()));
-                case 2 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT,
+                case 2 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, getPanelWidth() - SPACING * 2, VALUE_HEIGHT,
                         "Y", menu.blockEntity::getOffsetY, menu.blockEntity::setOffsetY,
                         value -> new MagicBlockSettingsUpdatePayload(menu.blockEntity.getBlockPos(), Optional.empty(), Optional.empty(), Optional.of(value), Optional.empty(), Optional.empty()));
-                case 3 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, panelWidth - SPACING * 2, VALUE_HEIGHT,
+                case 3 -> setupOffsetControls(centerX, contentStartY, BUTTON_WIDTH, getPanelWidth() - SPACING * 2, VALUE_HEIGHT,
                         "Z", menu.blockEntity::getOffsetZ, menu.blockEntity::setOffsetZ,
                         value -> new MagicBlockSettingsUpdatePayload(menu.blockEntity.getBlockPos(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(value), Optional.empty()));
             }
@@ -101,6 +101,27 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
 
         renderOutlineButton.setX(leftPos + (imageWidth - 60) / 2);
         renderOutlineButton.setY(topPos + imageHeight - 25);
+    }
+
+    // Helper methods for layout calculations
+    private int getPanelWidth() {
+        return (imageWidth - (MARGIN * 2) - (SPACING * (PANEL_COUNT - 1))) / PANEL_COUNT;
+    }
+    
+    private int getPanelHeight() {
+        return imageHeight - HEADER_HEIGHT - (MARGIN * 2) - PANEL_BOTTOM_PADDING;
+    }
+    
+    private int getPanelX(int panelIndex) {
+        return leftPos + MARGIN + (panelIndex * (getPanelWidth() + SPACING));
+    }
+    
+    private int getPanelCenterX(int panelIndex) {
+        return getPanelX(panelIndex) + (getPanelWidth() / 2);
+    }
+    
+    private int getPanelY() {
+        return topPos + HEADER_HEIGHT;
     }
 
     private void setupSpeedControls(int centerX, int startY, int btnWidth, int valWidth, int valHeight) {
@@ -218,13 +239,12 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
         
         // Panel labels
         String[] labels = {"Speed", "X", "Y", "Z"};
-        int panelWidth = (imageWidth - (MARGIN * 2) - (SPACING * (PANEL_COUNT - 1))) / PANEL_COUNT;
         
         for (int i = 0; i < labels.length; i++) {
-            int panelX = leftPos + MARGIN + (i * (panelWidth + SPACING));
+            int panelX = getPanelX(i);
             int textWidth = this.font.width(labels[i]);
             guiGraphics.drawString(this.font, labels[i], 
-                panelX + (panelWidth - textWidth) / 2,
+                panelX + (getPanelWidth() - textWidth) / 2,
                 topPos + HEADER_HEIGHT + 6, 
                 0xF6F6F7, false);
         }
@@ -254,13 +274,10 @@ public class MagicBlockScreen extends AbstractContainerScreen<MagicBlockMenu> {
         guiGraphics.fill(leftPos, topPos + imageHeight - 1, leftPos + imageWidth, topPos + imageHeight, BORDER_COLOR);
         
         // Draw panels
-        int panelWidth = (imageWidth - (MARGIN * 2) - (SPACING * (PANEL_COUNT - 1))) / PANEL_COUNT;
-        int panelHeight = imageHeight - HEADER_HEIGHT - (MARGIN * 2) - 10;
-        
         for (int i = 0; i < PANEL_COUNT; i++) {
-            int panelX = leftPos + MARGIN + (i * (panelWidth + SPACING));
-            int panelY = topPos + HEADER_HEIGHT;
-            guiGraphics.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x0DFFFFFF);
+            int panelX = getPanelX(i);
+            int panelY = getPanelY();
+            guiGraphics.fill(panelX, panelY, panelX + getPanelWidth(), panelY + getPanelHeight(), 0x0DFFFFFF);
         }
     }
     
