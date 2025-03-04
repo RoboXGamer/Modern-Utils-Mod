@@ -65,8 +65,8 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   //Widgets
   private Button remainingToggleBtn;
   private ImageButton redstoneModeButton;
-  private AnimatedTab SideConfigTab;
-  private AnimatedTab AddonTab;
+  public AnimatedTab SideConfigTab;
+  public AnimatedTab AddonTab;
   private ExtendedButton autoImportBtn;
   private ExtendedButton sideConfigBtn;
   private ExtendedButton addonConfigBtn;
