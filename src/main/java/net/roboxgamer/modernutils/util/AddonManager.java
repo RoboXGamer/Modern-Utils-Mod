@@ -32,7 +32,7 @@ public class AddonManager {
     private final Set<Item> allowedItems;
     
     // Addon slots item handler
-    private final ItemStackHandler addonSlots;
+    private final CustomItemStackHandler addonSlots;
     
     /**
      * Creates a new AddonManager with the specified addon slots count and allowed items.
@@ -46,7 +46,7 @@ public class AddonManager {
         this.allowedItems = allowedItems;
         
         // Initialize addon slots handler
-        this.addonSlots = new ItemStackHandler(ADDON_SLOTS_COUNT) {
+        this.addonSlots = new CustomItemStackHandler(ADDON_SLOTS_COUNT,blockEntity) {
             @Override
             public boolean isItemValid(int slot, @NotNull ItemStack stack) {
                 // Only allow items from the allowed items set
@@ -58,13 +58,6 @@ public class AddonManager {
                 // Limit to 1 item per addon slot
                 return 1;
             }
-            
-            @Override
-            protected void onContentsChanged(int slot) {
-                super.onContentsChanged(slot);
-                // Notify the block entity that there's been a change
-                blockEntity.setChanged();
-            }
         };
     }
     
@@ -72,7 +65,7 @@ public class AddonManager {
      * Gets the addon slots item handler.
      * @return The addon slots item handler
      */
-    public ItemStackHandler getAddonSlots() {
+    public CustomItemStackHandler getAddonSlots() {
         return this.addonSlots;
     }
     

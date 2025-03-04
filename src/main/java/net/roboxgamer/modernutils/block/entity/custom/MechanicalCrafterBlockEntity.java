@@ -830,6 +830,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
 
     this.redstoneManager.saveToTag(modData);
     this.sideManager.saveToTag(modData);
+    this.addonManager.saveToTag(modData,registries);
 
     return modData;
   }
@@ -995,7 +996,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     this.craftingSpeed = 1;
     
     // Get the addon slots handler
-    ItemStackHandler addonSlots = this.addonManager.getAddonSlots();
+    CustomItemStackHandler addonSlots = this.addonManager.getAddonSlots();
     
     // Calculate combined speed multiplier from all addon slots
     int combinedSpeedMultiplier = 0;
@@ -1023,7 +1024,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
   }
   
   // Add method to expose the addon slots through AddonManager
-  public ItemStackHandler getAddonSlotsItemHandler() {
+  public CustomItemStackHandler getAddonSlotsItemHandler() {
     return this.addonManager.getAddonSlots();
   }
 }
