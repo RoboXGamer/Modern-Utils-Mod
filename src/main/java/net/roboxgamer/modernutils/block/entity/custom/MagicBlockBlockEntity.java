@@ -4,6 +4,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -181,12 +184,13 @@ public class MagicBlockBlockEntity extends BlockEntity implements MenuProvider {
   }
   
   @Override
-  public void setChanged() {
-    super.setChanged();
-    Level level = this.getLevel();
-    if (level != null) {
-      level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
-    }
+  public @NotNull CompoundTag getUpdateTag(HolderLookup.@NotNull Provider registries) {
+    return getModData(registries);
+  }
+  
+  @Override
+  public @Nullable Packet<ClientGamePacketListener> getUpdatePacket() {
+    return ClientboundBlockEntityDataPacket.create(this);
   }
   
   @Override
