@@ -70,11 +70,11 @@ public class ModernUtilsMod {
     modEventBus.addListener(this::registerScreens);
     modEventBus.addListener(this::registerPackets);
 
-    // Register the item to a creative tab
-    modEventBus.addListener(this::addCreative);
-
     // Config setup
     modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+
+    // Register the item to a creative tab
+    modEventBus.addListener(this::addCreative);
   }
 
   private void commonSetup(final FMLCommonSetupEvent event) {

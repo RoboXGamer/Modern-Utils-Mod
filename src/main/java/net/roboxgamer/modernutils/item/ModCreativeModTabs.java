@@ -6,7 +6,9 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.roboxgamer.modernutils.Config;
 import net.roboxgamer.modernutils.ModernUtilsMod;
+import net.roboxgamer.modernutils.block.ModBlocks;
 
 import java.util.function.Supplier;
 
@@ -21,7 +23,17 @@ public class ModCreativeModTabs {
                                     .title(
                                         Component.translatable("creativetab.modernutils.tab"))
                                     .displayItems((parameters, output) -> {
-                                      ModItems.ITEMS.getEntries().forEach(item -> output.accept(item.get()));
+                                      ModItems.ITEMS.getEntries().forEach(item -> {
+                                        var i = item.get();
+                                        var isMagicBlock = i.asItem().equals(
+                                            ModBlocks.MAGIC_BLOCK.asItem());
+                                        if (isMagicBlock && Config.enabledMagicBlock) {
+                                          output.accept(i);
+                                        }
+                                        else if (!isMagicBlock) {
+                                          output.accept(i);
+                                        }
+                                      });
                                     })
                                     .build());
 
