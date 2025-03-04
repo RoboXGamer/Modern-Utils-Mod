@@ -1,5 +1,6 @@
 package net.roboxgamer.modernutils.client.screen;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -197,6 +198,11 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         (button, clickAction, mouseX, mouseY) -> {
           AddonTab.toggleOpen();
           this.menu.toggleAddonSlots();
+          this.getMinecraft().gameMode
+              .handleInventoryButtonClick(
+                  this.menu.containerId,
+                  MechanicalCrafterMenu.ADDON_TAB_TOGGLE_BUTTON_ID
+              );
         },
         this.player
     ){

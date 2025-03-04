@@ -23,7 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity.*;
+import static net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity.CRAFT_RECIPE_SLOTS;
+import static net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity.RESULT_SLOT;
 
 public class MechanicalCrafterMenu extends AbstractContainerMenu {
   
@@ -40,10 +41,12 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   public static final int OUTPUT_SLOTS_COUNT = 9;
   private final List<AddonSlotItemHandler> addonSlotHandlers = new ArrayList<>(4);
   
-  public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity){
+  public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv,
+  MechanicalCrafterBlockEntity blockEntity) {
     this(containerId, playerInv, blockEntity, new SimpleContainerData(10));
   }
-  //Server Constructor
+  
+  // Server Constructor
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv, MechanicalCrafterBlockEntity blockEntity, ContainerData data) {
     super(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), containerId);
     this.blockEntity = blockEntity;
@@ -56,7 +59,6 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     createPlayerHotbar(playerInv);
     createPlayerInventory(playerInv);
   }
-  
   
   private void createPlayerInventory(@NotNull Inventory playerInv) {
     var playerInvYStart = 154;
@@ -81,7 +83,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     ItemStackHandler outputItemHandler = blockEntity.getOutputSlotsItemHandler();
     ItemStackHandler addonItemHandler = blockEntity.getAddonSlotsItemHandler();// Get addon handler
     MechanicalCrafterBlockEntity.CraftingSlotHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
-    //add result slot
+    // add result slot
     this.addSlot(new SlotItemHandler(craftingItemHandler, RESULT_SLOT, 98, 36) {
       @Override
       public boolean mayPlace(@NotNull ItemStack stack) {
@@ -93,7 +95,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
         return false;
       }
     });
-    //add recipe slots
+    // add recipe slots
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 3; col++) {
         this.addSlot(
@@ -101,13 +103,13 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
                                              18 + row * 18));
       }
     }
-    //add input slots
+    // add input slots
     for (int col = 0; col < INPUT_SLOTS_COUNT; col++) {
       this.addSlot(new SlotItemHandler(inputItemHandler, col, 8 + col * 18, inputSlotsYStart));
     }
     // add output slots
     for (int col = 0; col < OUTPUT_SLOTS_COUNT; col++) {
-      this.addSlot(new OutputSlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart,this));
+      this.addSlot(new OutputSlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart, this));
     }
     
     // Add addon slots in a 2x2 grid with positions matching the animated tab
@@ -131,107 +133,136 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     return slot > -1 && slot < 9 && this.containerData.get(slot) == 1;
   }
   
-  public void toggleAddonSlots() {
-    this.addonSlotHandlers.forEach(
-        t -> t.setActive(true)
-    );
-  }
-  
-  //Client Constructor
+  public static final int ADDON_TAB_TOGGLE_BUTTON_ID = 9999; // Use a unique ID that won't conflict with other buttons
+
+  // Client Constructor
   public MechanicalCrafterMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf extraData) {
     this(containerId, playerInv,
          (MechanicalCrafterBlockEntity) playerInv.player.level().getBlockEntity(extraData.readBlockPos()));
   }
   
-  @Override
-  public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
+  private void updateSourceSlot(Slot slot, ItemStack remaining, ItemStack original) {
+    if (remaining.isEmpty()) {
+        slot.set(ItemStack.EMPTY);
+    } else {
+        slot.set(remaining);
+        slot.setChanged();
+    }
+}
+
+private ItemStack tryInsertIntoHandler(ItemStackHandler handler, ItemStack stack) {
+    if (stack.isEmpty() || handler == null) {
+        return stack;
+    }
+
+    ItemStack toInsert = stack.copy();
+    
+    // First try to fill existing stacks of the same type
+    for (int i = 0; i < handler.getSlots() && !toInsert.isEmpty(); i++) {
+        ItemStack slotStack = handler.getStackInSlot(i);
+        if (!slotStack.isEmpty() && 
+            ItemStack.isSameItemSameComponents(slotStack, toInsert) && 
+            slotStack.getCount() < slotStack.getMaxStackSize()) {
+            toInsert = handler.insertItem(i, toInsert, false);
+        }
+    }
+    
+    // Then try empty slots
+    if (!toInsert.isEmpty()) {
+        for (int i = 0; i < handler.getSlots() && !toInsert.isEmpty(); i++) {
+            if (handler.getStackInSlot(i).isEmpty()) {
+                toInsert = handler.insertItem(i, toInsert, false);
+            }
+        }
+    }
+    
+    return toInsert;
+}
+
+@Override
+public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
     ItemStack itemstack = ItemStack.EMPTY;
     Slot slot = this.slots.get(index);
     
-    if (slot.hasItem()) {
-      ItemStack stackInSlot = slot.getItem();
-      itemstack = stackInSlot.copy();
-      
-      int playerInventoryStart = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + this.blockEntity.getAddonManager().ADDON_SLOTS_COUNT + 10;  // Adjust for addon slots
-      int playerHotbarStart = playerInventoryStart + 27;
-      int playerHotbarEnd = playerHotbarStart + 9;
-      
-      // Calculate the range of addon slot indices
-      int addonStartIndex = INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10;
-      int addonEndIndex = addonStartIndex + this.blockEntity.getAddonManager().ADDON_SLOTS_COUNT;
-      
-      // Moving from addon slots to player inventory
-      if (index >= addonStartIndex && index < addonEndIndex) {
-        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, true)) {
-          return ItemStack.EMPTY;
-        }
-        slot.onQuickCraft(stackInSlot, itemstack);
-      }
-      // Moving from output slots to player inventory
-      else if (index >= INPUT_SLOTS_COUNT + 10 && index < INPUT_SLOTS_COUNT + OUTPUT_SLOTS_COUNT + 10) {
-        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, true)) {
-          return ItemStack.EMPTY;
-        }
-        slot.onQuickCraft(stackInSlot, itemstack);
-      }
-      // Moving from input slots back to player inventory
-      else if (index >= 10 && index < INPUT_SLOTS_COUNT + 10) {
-        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerHotbarEnd, false)) {
-          return ItemStack.EMPTY;
-        }
-      }
-      // Moving from player inventory to input slots or addon slots
-      else if (index >= playerInventoryStart) {
-        // Try to move to addon slots if it's a valid upgrade
-        if (blockEntity.getAddonManager().isAllowedItem(stackInSlot.getItem()) && this.addonSlotHandlers.getFirst().isActive()) {
-          if (this.moveItemStackTo(stackInSlot, addonStartIndex, addonEndIndex, false)) {
-            // Success
-          } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
-            return ItemStack.EMPTY;
-          }
-        } else if (!this.moveItemStackTo(stackInSlot, 10, INPUT_SLOTS_COUNT + 10, false)) {
-          return ItemStack.EMPTY;
-        }
-      }
-      
-      if (stackInSlot.isEmpty()) {
-        slot.set(ItemStack.EMPTY);
-      } else {
-        slot.setChanged();
-      }
-      
-      if (stackInSlot.getCount() == itemstack.getCount()) {
+    if (!slot.hasItem()) {
         return ItemStack.EMPTY;
-      }
-      
-      slot.onTake(player, stackInSlot);
     }
+
+    ItemStack stackInSlot = slot.getItem();
+    itemstack = stackInSlot.copy();
     
-    return itemstack;
-  }
-  
-  
-  @Override
-  public boolean stillValid(@NotNull Player player) {
+    int inputStartIndex = 10;
+    int outputStartIndex = inputStartIndex + INPUT_SLOTS_COUNT;
+    int addonStartIndex = outputStartIndex + OUTPUT_SLOTS_COUNT;
+    int addonEndIndex = addonStartIndex + this.blockEntity.getAddonManager().ADDON_SLOTS_COUNT;
+    int playerInventoryStart = addonEndIndex;
+    
+    // Moving from output slots needs special handling
+    if (index >= outputStartIndex && index < addonStartIndex) {
+        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerInventoryStart + 36, true)) {
+            return ItemStack.EMPTY;
+        }
+        slot.onTake(player, stackInSlot); // Handle any special output slot behavior
+    }
+    // Moving from player inventory
+    else if (index >= playerInventoryStart) {
+        ItemStack remaining = stackInSlot.copy();
+        boolean handled = false;
+        boolean isAnAddonItem = blockEntity.getAddonManager().isAllowedItem(remaining.getItem());
+        boolean addonSlotIsActive = this.addonSlotHandlers.stream().anyMatch(AddonSlotItemHandler::isActive);
+        // Try addon slots first if valid upgrade and addon tab is active
+        if (isAnAddonItem && addonSlotIsActive) {
+            
+            remaining = tryInsertIntoHandler(blockEntity.getAddonSlotsItemHandler(), remaining);
+            handled = remaining.getCount() != stackInSlot.getCount();
+        }
+        
+        // If not handled by addon slots or still has items, try input slots
+        if (!handled || !remaining.isEmpty()) {
+            remaining = tryInsertIntoHandler(blockEntity.getInputSlotsItemHandler(), remaining);
+        }
+        
+        updateSourceSlot(slot, remaining, stackInSlot);
+        if (remaining.getCount() == stackInSlot.getCount()) {
+            return ItemStack.EMPTY; // Nothing was moved
+        }
+        
+        slot.setChanged();
+        return itemstack;
+    }
+    // Moving from addon/input slots to player inventory
+    else if (index >= inputStartIndex) {
+        if (!this.moveItemStackTo(stackInSlot, playerInventoryStart, playerInventoryStart + 36, true)) {
+            return ItemStack.EMPTY;
+        }
+        slot.setChanged();
+    }
+
+    return stackInSlot.isEmpty() ? itemstack : ItemStack.EMPTY;
+}
+
+@Override
+public boolean stillValid(@NotNull Player player) {
     return stillValid(this.levelAccess, player, ModBlocks.MECHANICAL_CRAFTER_BLOCK.get());
-  }
-  
-  public MechanicalCrafterBlockEntity getBlockEntity() {
+}
+
+public MechanicalCrafterBlockEntity getBlockEntity() {
     return this.blockEntity;
-  }
-  
-  /**
-   * Gets the current crafting progress as a value between 0.0 and 1.0.
-   * @return Current progress as a float where 0.0 = 0% and 1.0 = 100%
-   */
-  public float getCraftingProgress() {
+}
+
+/**
+ * Gets the current crafting progress as a value between 0.0 and 1.0.
+ *
+ * @return Current progress as a float where 0.0 = 0% and 1.0 = 100%
+ */
+public float getCraftingProgress() {
     int currentProgress = MechanicalCrafterBlockEntity.getProgressFromContainerData(this.containerData);
     int maxProgress = MechanicalCrafterBlockEntity.getMaxCraftingTime();
     return (float) currentProgress / maxProgress;
-  }
-  
-  @Override
-  public void clicked(int slotId, int button, @NotNull ClickType clickType, @NotNull Player player) {
+}
+
+@Override
+public void clicked(int slotId, int button, @NotNull ClickType clickType, @NotNull Player player) {
     // Check if the clicked slot is a CraftingGhostSlotItemHandler
     if (slotId >= 0 && slotId < this.slots.size()) {
       Slot slot = this.slots.get(slotId);
@@ -240,11 +271,11 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
         ItemStack heldItem = this.getCarried(); // Item currently held by the player
         
         if (clickType == ClickType.PICKUP) {
-          if (button == 0) {  // Left-click (button 0)
+          if (button == 0) { // Left-click (button 0)
             if (!heldItem.isEmpty()) {
               ghostSlot.increase(heldItem);
             }
-          } else if (button == 1) {  // Right-click (button 1)
+          } else if (button == 1) { // Right-click (button 1)
             if (heldItem.isEmpty()) {
               // If the player is not holding an item, remove the ghost item
               ghostSlot.removeItem();
@@ -254,36 +285,47 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
             }
           }
         }
-        return;  // No need to call super as we handle it
+        return; // No need to call super as we handle it
       }
     }
     
     // Call super to handle other slots normally
     super.clicked(slotId, button, clickType, player);
-  }
-  
-  public void setSlotState(int slot, boolean enabled) {
-    OutputSlotItemHandler outputSlot = (OutputSlotItemHandler)this.getSlot(slot);
+}
+
+public void setSlotState(int slot, boolean enabled) {
+    OutputSlotItemHandler outputSlot = (OutputSlotItemHandler) this.getSlot(slot);
     this.containerData.set(outputSlot.getSlotIndex(), enabled ? 0 : 1);
     this.blockEntity.setSlotState(outputSlot.getSlotIndex(), enabled ? 0 : 1);
     this.broadcastChanges();
-  }
-  
-  @Override
-  public boolean clickMenuButton(Player player, int id) {
+}
+
+public boolean toggleAddonSlots() {
+    this.addonSlotHandlers.forEach(handler -> handler.setActive(!handler.isActive()));
+    return true;
+}
+
+@Override
+public boolean clickMenuButton(Player player, int id) {
+    if (id == ADDON_TAB_TOGGLE_BUTTON_ID) {
+        return this.toggleAddonSlots();
+    }
+    
     PackedButtonData packedButtonData = PackedButtonData.fromId(id);
     Constants.Sides side = packedButtonData.side();
-    this.blockEntity.getSideManager().handleSideBtnClick(side, packedButtonData.shifted(), packedButtonData.clickAction());
+    this.blockEntity.getSideManager().handleSideBtnClick(side, packedButtonData.shifted(),
+                                                         packedButtonData.clickAction());
     PacketDistributor.sendToPlayer((ServerPlayer) player,
-                                   new SideStatePayload(side, this.blockEntity.getSideManager().getSideState(side), this.blockEntity.getBlockPos())
-          );
+                                   new SideStatePayload(side, this.blockEntity.getSideManager().getSideState(side),
+                                                        this.blockEntity.getBlockPos()));
     return true;
-  }
-  
-  public static class AddonSlotItemHandler extends SlotItemHandler {
-      private boolean active = false;
-      @Override
-      public boolean mayPlace(@NotNull ItemStack stack) {
+}
+
+public static class AddonSlotItemHandler extends SlotItemHandler {
+    private boolean active = false;
+    
+    @Override
+    public boolean mayPlace(@NotNull ItemStack stack) {
       // Allow all valid speed upgrades
       return stack.getItem() == Items.COAL_BLOCK ||
           stack.getItem() == Items.IRON_BLOCK ||
@@ -293,18 +335,19 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
           stack.getItem() == Items.NETHERITE_BLOCK ||
           stack.getItem() == Items.AMETHYST_BLOCK;
     }
-      
-      @Override
-      public boolean isActive() {
+    
+    @Override
+    public boolean isActive() {
       return active;
     }
-      
-      public void toggleActive() {
+    
+    public void toggleActive() {
       this.active = !active;
     }
     
     public void setActive(boolean active) {
       this.active = active;
+      this.setChanged();
     }
     
     public AddonSlotItemHandler(IItemHandler itemHandler, int index, int xPosition, int yPosition) {
