@@ -49,8 +49,8 @@ public class ServerPayloadHandler {
     var blockPos = payload.blockPos();
     ModernUtilsMod.LOGGER.debug("Server received redstoneMode: {}", mode);
     var blockEntity = context.player().level().getBlockEntity(blockPos);
-    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-      be.getRedstoneManager().setRedstoneMode(REDSTONE_MODE_MAP.get(mode));
+    if (blockEntity instanceof Constants.IRedstoneConfigurable redstoneConfigurable) {
+      redstoneConfigurable.getRedstoneManager().setRedstoneMode(REDSTONE_MODE_MAP.get(mode));
     }
   }
   
@@ -58,24 +58,23 @@ public class ServerPayloadHandler {
     var state = payload.slotState();
     var slotIndex = payload.slotIndex();
     var blockPos = payload.blockPos();
+    var blockEntity = context.player().level().getBlockEntity(blockPos);
+    if (!(blockEntity instanceof Constants.ISidedMachine sidedMachine)) {
+      return;
+    }
+    var sideManager = sidedMachine.getSideManager();
     //   SPECIAL CASE: Slot -1 is for auto export enabling/disabling
     //   SPECIAL CASE: Slot -2 is for auto import enabling/disabling
     switch (slotIndex) {
         case -1 -> {
-          var blockEntity = context.player().level().getBlockEntity(blockPos);
-          if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-            be.getSideManager().setAutoExportEnabled(state);
-          }
+          sideManager.setAutoExportEnabled(state);
         }
         case -2 -> {
-          var blockEntity = context.player().level().getBlockEntity(blockPos);
-          if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-            be.getSideManager().setAutoImportEnabled(state);
-          }
+          sideManager.setAutoImportEnabled(state);
         }
         default -> {
+          // For output slots disabling feature
           ModernUtilsMod.LOGGER.debug("Server received slotState: {}", state);
-          var blockEntity = context.player().level().getBlockEntity(blockPos);
           if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
             be.setSlotState(slotIndex, state ? 0 : 1);
           }

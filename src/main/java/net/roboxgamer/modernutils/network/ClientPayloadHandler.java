@@ -5,6 +5,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
+import net.roboxgamer.modernutils.util.Constants;
 
 public class ClientPayloadHandler {
   public static void handleData(RemainItemTogglePayload payload, final IPayloadContext context) {
@@ -32,8 +33,8 @@ public class ClientPayloadHandler {
   
   public static void handleData(SideStatePayload payload, final IPayloadContext context) {
     var blockEntity = context.player().level().getBlockEntity(payload.blockPos());
-    if (blockEntity instanceof MechanicalCrafterBlockEntity be) {
-      be.getSideManager().setSideBtnState(payload.side(), payload.sideState());
+    if (blockEntity instanceof Constants.ISidedMachine sidedMachine) {
+      sidedMachine.getSideManager().setSideBtnState(payload.side(), payload.sideState());
     }
   }
 
