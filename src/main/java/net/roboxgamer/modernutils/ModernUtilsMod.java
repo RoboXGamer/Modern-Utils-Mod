@@ -14,6 +14,7 @@ import net.roboxgamer.modernutils.block.entity.custom.renderer.MagicBlockEntityR
 import net.roboxgamer.modernutils.block.entity.custom.renderer.MechanicalCrafterBlockEntityRenderer;
 import net.roboxgamer.modernutils.client.screen.MagicBlockScreen;
 import net.roboxgamer.modernutils.client.screen.MechanicalCrafterScreen;
+import net.roboxgamer.modernutils.client.screen.MechanicalFurnaceScreen;
 import net.roboxgamer.modernutils.client.screen.MiniChestScreen;
 import net.roboxgamer.modernutils.item.ModCreativeModTabs;
 import net.roboxgamer.modernutils.item.ModCustomDataComponents;
@@ -90,6 +91,7 @@ public class ModernUtilsMod {
     event.register(ModMenuTypes.MECHANICAL_CRAFTER_MENU.get(), MechanicalCrafterScreen::new);
     event.register(ModMenuTypes.MINI_CHEST_MENU.get(), MiniChestScreen::new);
     event.register(ModMenuTypes.MAGIC_BLOCK_MENU.get(), MagicBlockScreen::new);
+    event.register(ModMenuTypes.MECHANICAL_FURNACE_MENU.get(), MechanicalFurnaceScreen::new);
   }
 
   @SubscribeEvent
@@ -157,6 +159,10 @@ public class ModernUtilsMod {
         Capabilities.EnergyStorage.BLOCK,
         ModBlockEntities.BATTERY_BLOCK_ENTITY.get(),
         (be, side) -> be.getEnergyStorage());
+    event.registerBlockEntity(
+        Capabilities.ItemHandler.BLOCK,
+        ModBlockEntities.MECHANICAL_FURNACE_BE.get(),
+        (be, side) -> be.getCapabilityHandler(side));
   }
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)

@@ -67,8 +67,9 @@ public class AnimatedTab extends AbstractWidget {
   }
   
   // Toggle the tab state
-  public void toggleOpen() {
+  public boolean toggleOpen() {
     isOpen = !isOpen;
+    return isOpen;
   }
   
   // Method to check if the tab is open

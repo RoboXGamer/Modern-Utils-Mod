@@ -32,6 +32,13 @@ public class ModRecipeProvider extends RecipeProvider implements IConditionBuild
         .requires(Items.CHEST)
         .unlockedBy("has_log",has(ItemTags.LOGS))
         .save(pRecipeOutput);
+
+    ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.MECHANICAL_FURNACE_BLOCK.get())
+        .requires(Items.FURNACE)
+        .requires(Items.CHEST)
+        .requires(Items.HOPPER)
+        .unlockedBy("has_furnace", has(Items.FURNACE))
+        .save(pRecipeOutput);
   }
   
   protected static void oreSmelting(RecipeOutput pRecipeOutput, List<ItemLike> pIngredients, RecipeCategory pCategory, ItemLike pResult, float pExperience, int pCookingTIme, String pGroup) {

@@ -11,6 +11,7 @@ import net.roboxgamer.modernutils.block.entity.custom.BatteryBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.ExampleInventoryBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.MechanicalFurnaceBlockEntity;
 import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
 
 import java.util.function.Supplier;
@@ -47,6 +48,12 @@ public class ModBlockEntities {
       BLOCK_ENTITIES.register("battery_block_entity", () -> BlockEntityType.Builder.
           of(BatteryBlockEntity::new,
              ModBlocks.BATTERY_BLOCK.get())
+          .build(null));
+
+  public static final Supplier<BlockEntityType<MechanicalFurnaceBlockEntity>> MECHANICAL_FURNACE_BE =
+      BLOCK_ENTITIES.register("mechanical_furnace_be", () -> BlockEntityType.Builder.
+          of(MechanicalFurnaceBlockEntity::new,
+             ModBlocks.MECHANICAL_FURNACE_BLOCK.get())
           .build(null));
   
   

@@ -22,6 +22,9 @@ public class ModMenuTypes {
   public static final Supplier<MenuType<MagicBlockMenu>> MAGIC_BLOCK_MENU = MENUS.register(
       "magic_block_menu", () -> IMenuTypeExtension.create(MagicBlockMenu::new));
 
+  public static final Supplier<MenuType<MechanicalFurnaceMenu>> MECHANICAL_FURNACE_MENU = MENUS.register(
+      "mechanical_furnace_menu", () -> IMenuTypeExtension.create(MechanicalFurnaceMenu::new));
+
   public static void register(IEventBus eventBus) {
     MENUS.register(eventBus);
   }

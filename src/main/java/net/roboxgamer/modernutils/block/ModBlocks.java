@@ -40,6 +40,9 @@ public class ModBlocks {
   
   public static final DeferredBlock<BatteryBlock> BATTERY_BLOCK = registerWIPBlock("battery_block", ()->
       new BatteryBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
+
+  public static final DeferredBlock<MechanicalFurnaceBlock> MECHANICAL_FURNACE_BLOCK = registerBlock("mechanical_furnace_block", ()->
+      new MechanicalFurnaceBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.FURNACE)));
   
   private static <T extends Block> DeferredBlock<T> registerWIPBlock(String name, Supplier<T> block) {
     DeferredBlock<T> toReturn = WIP_BLOCKS.register(name, block);

@@ -19,6 +19,7 @@ public class ModBlockStateProvider extends BlockStateProvider {
     blockWithItem(ModBlocks.MAGIC_BLOCK);
     blockWithItem(ModBlocks.EXAMPLE_INVENTORY_BLOCK);
     blockWithItem(ModBlocks.BATTERY_BLOCK);
+    blockWithItem(ModBlocks.MECHANICAL_FURNACE_BLOCK);
     
     Block block = ModBlocks.MINI_CHEST_BLOCK.get();
     ModelFile model = new ModelFile.UncheckedModelFile(modLoc("block/mini_chest_block"));
