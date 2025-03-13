@@ -86,8 +86,11 @@ public class MechanicalCrafterBlock extends Block implements EntityBlock {
       if (be instanceof MechanicalCrafterBlockEntity blockEntity) {
         SimpleContainer inputInv = blockEntity.getInputContainer();
         SimpleContainer outputInv = blockEntity.getOutputContainer();
+        SimpleContainer addonInv = blockEntity.getAddonContainer();
+
         Containers.dropContents(level, pos, inputInv);
         Containers.dropContents(level, pos, outputInv);
+        Containers.dropContents(level, pos, addonInv);
       }
       super.onRemove(state, level, pos, newState, movedByPiston);
       level.updateNeighbourForOutputSignal(pos, this);
