@@ -1,5 +1,10 @@
 package net.roboxgamer.modernutils.util;
 
+import java.util.Set;
+import java.util.Map;
+
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 
 public class Constants {
@@ -24,7 +29,7 @@ public class Constants {
     SPECIAL
   }
   
-  public enum Sides{
+  public enum Sides {
     UP,
     DOWN,
     LEFT,
@@ -33,7 +38,7 @@ public class Constants {
     FRONT
   }
   
-  public enum SideState{
+  public enum SideState {
     NONE,
     INPUT,
     OUTPUT,
@@ -48,7 +53,41 @@ public class Constants {
       default -> 0xAA555555;     // Grey with some transparency
     };
   }
+
+  public static Set<Item> ALLOWED_FURNACE_ADDONS = Set.of(
+      Items.COAL,
+      Items.CHARCOAL,
+      Items.DIAMOND,
+      Items.IRON_INGOT,
+      Items.GOLD_INGOT,
+      Items.NETHERITE_INGOT,
+      Items.BLAST_FURNACE,
+      Items.SMOKER
+  );
+
+  // Define speed multipliers for furnace upgrades
+  public static final Map<Item, Integer> FURNACE_SPEED_UPGRADES = Map.of(
+      Items.COAL, 2,                // 2x speed
+      Items.CHARCOAL, 2,           // 2x speed
+      Items.IRON_INGOT, 3,         // 3x speed
+      Items.GOLD_INGOT, 4,         // 4x speed
+      Items.DIAMOND, 6,            // 6x speed
+      Items.NETHERITE_INGOT, 8     // 8x speed
+  );
   
+  // Define all valid speed upgrade blocks with their corresponding speed multipliers for the mechanical crafter
+  public static final Map<Item, Integer> CRAFTER_SPEED_UPGRADES = Map.of(
+      Items.COAL_BLOCK, 2,             // 2x speed
+      Items.IRON_BLOCK, 4,             // 4x speed 
+      Items.GOLD_BLOCK, 8,             // 8x speed
+      Items.REDSTONE_BLOCK, 12,        // 12x speed
+      Items.DIAMOND_BLOCK, 20,         // 20x speed
+      Items.NETHERITE_BLOCK, 50,       // 50x speed
+      Items.AMETHYST_BLOCK, 100        // Instant crafting (100x speed - completes in 1 tick)
+  );
+  // For validation, just need the keys/items
+  public static final Set<Item> ALLOWED_CRAFTER_ADDONS = CRAFTER_SPEED_UPGRADES.keySet();
+
   public interface IRedstoneConfigurable {
     RedstoneManager getRedstoneManager();
   }

@@ -19,7 +19,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
@@ -62,18 +61,6 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
   private static final int DATA_SIZE = 10; // Total size of ContainerData (9 slot states + 1 progress)
   
 
-  // Define all valid speed upgrade blocks with their corresponding speed multipliers
-  private static final Map<Item, Integer> SPEED_UPGRADES = Map.of(
-      Items.COAL_BLOCK, 2,             // 2x speed
-      Items.IRON_BLOCK, 4,             // 4x speed 
-      Items.GOLD_BLOCK, 8,             // 8x speed
-      Items.REDSTONE_BLOCK, 12,        // 12x speed
-      Items.DIAMOND_BLOCK, 20,         // 20x speed
-      Items.NETHERITE_BLOCK, 50,       // 50x speed
-      Items.AMETHYST_BLOCK, 100        // Instant crafting (100x speed - completes in 1 tick)
-  );
-  // For validation, just need the keys/items
-  private static final List<Item> VALID_SPEED_UPGRADES = SPEED_UPGRADES.keySet().stream().toList();
   private int tc = 0;
   private CustomRecipeExtender<?> recipe;  
   private final RedstoneManager redstoneManager;
@@ -272,10 +259,7 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     };
     this.redstoneManager = new RedstoneManager(this);
     this.sideManager = new SideManager(this);
-    
-    // Create the set of allowed items for addons (speed upgrades)
-    Set<Item> allowedAddonItems = new HashSet<>(SPEED_UPGRADES.keySet());
-    this.addonManager = new AddonManager(this, 4, allowedAddonItems);
+    this.addonManager = new AddonManager(this, 4, Constants.ALLOWED_CRAFTER_ADDONS);
   }
 
   @Override
@@ -319,6 +303,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
         if (powered)
           return; // Stop crafting if receiving redstone power
         break;
+      case PULSE:
+        // TODO: Implement pulse mode
+        return;
     }
     // *** Logic for crafting ***
 
@@ -804,6 +791,14 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     return t;
   }
 
+  public SimpleContainer getAddonContainer() {
+    var t = new SimpleContainer(addonManager.getAddonSlots().getSlots());
+    for (int i = 0; i < addonManager.getAddonSlots().getSlots(); i++) {
+      t.setItem(i, addonManager.getAddonSlots().getStackInSlot(i));
+    }
+    return t;
+  }
+
   // Saving and loading
   CompoundTag getModData(HolderLookup.Provider registries) {
     CompoundTag modData = new CompoundTag();
@@ -1004,9 +999,9 @@ public class MechanicalCrafterBlockEntity extends BlockEntity
     // Check all addon slots
     for (int i = 0; i < addonSlots.getSlots(); i++) {
       ItemStack addon = addonSlots.getStackInSlot(i);
-      if (!addon.isEmpty() && SPEED_UPGRADES.containsKey(addon.getItem())) {
+      if (!addon.isEmpty() && Constants.CRAFTER_SPEED_UPGRADES.containsKey(addon.getItem())) {
         // Get the speed multiplier for this item and add it to the combined multiplier
-        int multiplier = SPEED_UPGRADES.get(addon.getItem());
+        int multiplier = Constants.CRAFTER_SPEED_UPGRADES.get(addon.getItem());
         // We use addition for the combined effect to avoid excessive acceleration
         combinedSpeedMultiplier += multiplier;
       }

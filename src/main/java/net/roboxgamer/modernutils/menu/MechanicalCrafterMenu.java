@@ -6,8 +6,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -19,8 +17,6 @@ import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.PackedButtonData;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 import static net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity.CRAFT_RECIPE_SLOTS;
@@ -31,15 +27,9 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
   private final MechanicalCrafterBlockEntity blockEntity;
   private final ContainerLevelAccess levelAccess;
   private final ContainerData containerData;
-  
-  // Constants for addon slots positions relative to the animated tab in the screen
-  // These need to match the visual positions in the animated tab
-  public static final int ADDON_SLOT_SIZE = AddonManager.ADDON_SLOT_SIZE; // Now using AddonManager's constant
-  public static final int ADDON_SLOT_PADDING = AddonManager.ADDON_SLOT_PADDING; // Now using AddonManager's constant
-  public static final int ADDON_TAB_BUTTON_PADDING = AddonManager.ADDON_TAB_BUTTON_PADDING; // Now using AddonManager's constant
+
   public static final int INPUT_SLOTS_COUNT = 9;
   public static final int OUTPUT_SLOTS_COUNT = 9;
-  private final List<AddonSlotItemHandler> addonSlotHandlers = new ArrayList<>(4);
   
   public MechanicalCrafterMenu(int containerId, @NotNull Inventory playerInv,
   MechanicalCrafterBlockEntity blockEntity) {
@@ -81,8 +71,8 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
     var outputSlotsYStart = 122;
     ItemStackHandler inputItemHandler = blockEntity.getInputSlotsItemHandler();
     ItemStackHandler outputItemHandler = blockEntity.getOutputSlotsItemHandler();
-    ItemStackHandler addonItemHandler = blockEntity.getAddonSlotsItemHandler();// Get addon handler
     MechanicalCrafterBlockEntity.CraftingSlotHandler craftingItemHandler = blockEntity.getCraftingSlotsItemHandler();
+
     // add result slot
     this.addSlot(new SlotItemHandler(craftingItemHandler, RESULT_SLOT, 98, 36) {
       @Override
@@ -95,6 +85,7 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
         return false;
       }
     });
+
     // add recipe slots
     for (int row = 0; row < 3; row++) {
       for (int col = 0; col < 3; col++) {
@@ -103,37 +94,31 @@ public class MechanicalCrafterMenu extends AbstractContainerMenu {
                                              18 + row * 18));
       }
     }
+
     // add input slots
     for (int col = 0; col < INPUT_SLOTS_COUNT; col++) {
       this.addSlot(new SlotItemHandler(inputItemHandler, col, 8 + col * 18, inputSlotsYStart));
     }
+
     // add output slots
     for (int col = 0; col < OUTPUT_SLOTS_COUNT; col++) {
       this.addSlot(new OutputSlotItemHandler(outputItemHandler, col, 8 + col * 18, outputSlotsYStart, this));
     }
     
-    // Add addon slots in a 2x2 grid with positions matching the animated tab
-    // These will be rendered in the top-right corner when the addon tab is opened
+    // Create addon slots using AddonManager helper
     int addonStartX = 176;
     int addonStartY = 0;
+    blockEntity.getAddonManager().createAddonSlots(addonStartX, addonStartY);
     
-    for (int row = 0; row < 2; row++) {
-      for (int col = 0; col < 2; col++) {
-        final int slotIndex = row * 2 + col;
-        int xPos = addonStartX + ADDON_SLOT_PADDING + col * (ADDON_SLOT_SIZE + ADDON_SLOT_PADDING);
-        int yPos = addonStartY + ADDON_TAB_BUTTON_PADDING + row * (ADDON_SLOT_SIZE + ADDON_SLOT_PADDING);
-        var addonSlotHandler = new AddonSlotItemHandler(addonItemHandler, slotIndex, xPos, yPos);
-        this.addonSlotHandlers.add(addonSlotHandler);
-        this.addSlot(addonSlotHandler);
-      }
+    // Add the addon slots to the menu
+    for (AddonManager.AddonSlotItemHandler handler : blockEntity.getAddonManager().getAddonSlotHandlers()) {
+      this.addSlot(handler);
     }
   }
   
   public boolean isSlotDisabled(int slot) {
     return slot > -1 && slot < 9 && this.containerData.get(slot) == 1;
   }
-  
-  public static final int ADDON_TAB_TOGGLE_BUTTON_ID = 9999; // Use a unique ID that won't conflict with other buttons
 
   // Client Constructor
   public MechanicalCrafterMenu(int containerId, Inventory playerInv, RegistryFriendlyByteBuf extraData) {
@@ -209,10 +194,11 @@ public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
         ItemStack remaining = stackInSlot.copy();
         boolean handled = false;
         boolean isAnAddonItem = blockEntity.getAddonManager().isAllowedItem(remaining.getItem());
-        boolean addonSlotIsActive = this.addonSlotHandlers.stream().anyMatch(AddonSlotItemHandler::isActive);
+        boolean addonSlotIsActive = this.blockEntity.getAddonManager().getAddonSlotHandlers().stream()
+            .anyMatch(AddonManager.AddonSlotItemHandler::isActive);
+        
         // Try addon slots first if valid upgrade and addon tab is active
         if (isAnAddonItem && addonSlotIsActive) {
-            
             remaining = tryInsertIntoHandler(blockEntity.getAddonSlotsItemHandler(), remaining);
             handled = remaining.getCount() != stackInSlot.getCount();
         }
@@ -301,58 +287,23 @@ public void setSlotState(int slot, boolean enabled) {
 }
 
 public boolean toggleAddonSlots() {
-    this.addonSlotHandlers.forEach(handler -> handler.setActive(!handler.isActive()));
-    return true;
+    return this.blockEntity.getAddonManager().toggleAddonSlots();
 }
 
 @Override
 public boolean clickMenuButton(Player player, int id) {
-    if (id == ADDON_TAB_TOGGLE_BUTTON_ID) {
+    if (id == AddonManager.ADDON_TAB_TOGGLE_BUTTON_ID) {
         return this.toggleAddonSlots();
     }
     
     PackedButtonData packedButtonData = PackedButtonData.fromId(id);
     Constants.Sides side = packedButtonData.side();
-    this.blockEntity.getSideManager().handleSideBtnClick(side, packedButtonData.shifted(),
-                                                         packedButtonData.clickAction());
+    var sideManager = this.blockEntity.getSideManager();
+    sideManager.handleSideBtnClick(side, packedButtonData.shifted(),packedButtonData.clickAction());
     PacketDistributor.sendToPlayer((ServerPlayer) player,
                                    new SideStatePayload(side, this.blockEntity.getSideManager().getSideState(side),
                                                         this.blockEntity.getBlockPos()));
     return true;
 }
 
-public static class AddonSlotItemHandler extends SlotItemHandler {
-    private boolean active = false;
-    
-    @Override
-    public boolean mayPlace(@NotNull ItemStack stack) {
-      // Allow all valid speed upgrades
-      return stack.getItem() == Items.COAL_BLOCK ||
-          stack.getItem() == Items.IRON_BLOCK ||
-          stack.getItem() == Items.GOLD_BLOCK ||
-          stack.getItem() == Items.REDSTONE_BLOCK ||
-          stack.getItem() == Items.DIAMOND_BLOCK ||
-          stack.getItem() == Items.NETHERITE_BLOCK ||
-          stack.getItem() == Items.AMETHYST_BLOCK;
-    }
-    
-    @Override
-    public boolean isActive() {
-      return active;
-    }
-    
-    public void toggleActive() {
-      this.active = !active;
-    }
-    
-    public void setActive(boolean active) {
-      this.active = active;
-      this.setChanged();
-    }
-    
-    public AddonSlotItemHandler(IItemHandler itemHandler, int index, int xPosition, int yPosition) {
-      super(itemHandler, index, xPosition, yPosition);
-    }
-    
-  }
 }
