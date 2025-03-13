@@ -21,6 +21,8 @@ import net.roboxgamer.modernutils.network.SlotStatePayload;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class SideManager {
@@ -170,6 +172,63 @@ public class SideManager {
   public void autoImport(List<IngredientNeed> neededItems, ItemStackHandler inputHandler) {
     getValidDirectionsStream(Direction.values(), this.importDirections).forEach(direction -> importFromAdjacentInventories(neededItems, direction,inputHandler));
   }
+
+  public void autoImportWithPredicate(ItemStackHandler targetSlots, Predicate<ItemStack> itemValidator, int maxCount) {
+        if (blockEntity.getLevel() == null) return;
+
+        // Track remaining count to import using AtomicInteger for lambda access
+        AtomicInteger remainingToImport = new AtomicInteger(maxCount);
+
+        getValidDirectionsStream(Direction.values(), this.importDirections).forEach(direction -> {
+            if (remainingToImport.get() <= 0) return;
+
+            BlockPos pos = blockEntity.getBlockPos().relative(direction);
+            IItemHandler cap = blockEntity.getLevel().getCapability(Capabilities.ItemHandler.BLOCK, pos, direction.getOpposite());
+            if (cap == null) return;
+
+            // Single pass through source slots
+            for (int slot = 0; slot < cap.getSlots() && remainingToImport.get() > 0; slot++) {
+                ItemStack stackToTest = cap.extractItem(slot, remainingToImport.get(), true);
+                if (!stackToTest.isEmpty() && itemValidator.test(stackToTest)) {
+                    // First try to merge with existing items
+                    boolean merged = false;
+                    for (int targetSlot = 0; targetSlot < targetSlots.getSlots() && remainingToImport.get() > 0; targetSlot++) {
+                        ItemStack currentStack = targetSlots.getStackInSlot(targetSlot);
+                        if (!currentStack.isEmpty() && ItemStack.isSameItemSameComponents(currentStack, stackToTest)) {
+                            int space = Math.min(
+                                currentStack.getMaxStackSize() - currentStack.getCount(),
+                                remainingToImport.get()
+                            );
+                            if (space > 0) {
+                                ItemStack extracted = cap.extractItem(slot, space, false);
+                                if (!extracted.isEmpty()) {
+                                    currentStack.grow(extracted.getCount());
+                                    remainingToImport.addAndGet(-extracted.getCount());
+                                    merged = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // If couldn't merge, try to put in empty slot
+                    if (!merged && remainingToImport.get() > 0) {
+                        for (int targetSlot = 0; targetSlot < targetSlots.getSlots(); targetSlot++) {
+                            if (targetSlots.getStackInSlot(targetSlot).isEmpty()) {
+                                int toExtract = Math.min(stackToTest.getMaxStackSize(), remainingToImport.get());
+                                ItemStack extracted = cap.extractItem(slot, toExtract, false);
+                                if (!extracted.isEmpty()) {
+                                    targetSlots.setStackInSlot(targetSlot, extracted);
+                                    remainingToImport.addAndGet(-extracted.getCount());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
   
   private @NotNull Stream<Direction> getValidDirectionsStream(Direction[] directions, Map<Direction, Boolean> map) {
     //  Filter out directions that are false in the import directions map
