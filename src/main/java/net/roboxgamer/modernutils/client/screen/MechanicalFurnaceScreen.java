@@ -317,11 +317,11 @@ public class MechanicalFurnaceScreen extends AbstractContainerScreen<MechanicalF
     int y = this.topPos;
     
     // Draw main background
-    guiGraphics.fill(x, y, x + imageWidth, y + imageHeight, 0xFF1F1F1F);
+    guiGraphics.fill(x, y, x + imageWidth, y + imageHeight, Constants.Colors.BACKGROUND_MAIN);
     
     // Draw furnace area background
     guiGraphics.fill(x + CONTAINER_PADDING, y + TITLE_HEIGHT, x + imageWidth - CONTAINER_PADDING,
-                     y + imageHeight - CONTAINER_PADDING, 0xFF2F2F2F);
+                     y + imageHeight - CONTAINER_PADDING, Constants.Colors.BACKGROUND_SECONDARY);
   }
   
   @Override

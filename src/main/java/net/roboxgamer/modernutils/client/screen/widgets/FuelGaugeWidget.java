@@ -1,6 +1,7 @@
 package net.roboxgamer.modernutils.client.screen.widgets;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.roboxgamer.modernutils.util.Constants;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratedElementType;
@@ -28,18 +29,18 @@ public class FuelGaugeWidget extends AbstractWidget {
         if (!fuelSupplier.hasFuel()) return;
 
         // Draw fuel background
-        guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, 0xFF3F3F3F);
+        guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, Constants.Colors.FUEL_BACKGROUND);
         
         // Draw fuel level
         int fuelLevel = fuelSupplier.getFuelLevel();
         if (fuelLevel > 0) {
             int fuelHeight = Mth.ceil((fuelLevel / 100f) * height);
-            guiGraphics.fill(getX(), getY() + height - fuelHeight, 
-                getX() + width, getY() + height, 0xFFFF8000);
+            guiGraphics.fill(getX(), getY() + height - fuelHeight,
+                getX() + width, getY() + height, Constants.Colors.FUEL_FILL);
         }
         
         // Draw border
-        drawBorder(guiGraphics, getX(), getY(), width, height, 0xFF4F4F4F, 0xFF1F1F1F);
+        drawBorder(guiGraphics, getX(), getY(), width, height, Constants.Colors.BORDER_LIGHT, Constants.Colors.BORDER_DARK);
 
         // Render tooltip if hovered
         if (isHovered() && fuelSupplier.hasFuel()) {

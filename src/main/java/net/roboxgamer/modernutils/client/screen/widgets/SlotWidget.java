@@ -1,6 +1,7 @@
 package net.roboxgamer.modernutils.client.screen.widgets;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.roboxgamer.modernutils.util.Constants;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.narration.NarratedElementType;
@@ -28,10 +29,10 @@ public class SlotWidget extends AbstractWidget {
     @Override
     public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // Draw slot background
-        guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, 0xFF2F2F2F);
+        guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, Constants.Colors.SLOT_BACKGROUND);
         
         // Draw 3D border effect
-        drawBorder(guiGraphics, getX(), getY(), width, height, 0xFF4F4F4F, 0xFF1F1F1F);
+        drawBorder(guiGraphics, getX(), getY(), width, height, Constants.Colors.BORDER_LIGHT, Constants.Colors.BORDER_DARK);
     }
 
     private void drawBorder(GuiGraphics guiGraphics, int x, int y, int width, int height, int lightColor, int darkColor) {

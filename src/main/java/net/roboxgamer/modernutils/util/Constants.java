@@ -8,6 +8,21 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 
 public class Constants {
+  public static final class Colors {
+    public static final int BACKGROUND_SECONDARY = 0xFFDDE5EB;     // Light grayish-blue (main container)
+    public static final int BACKGROUND_MAIN = 0xFFECEFF1; // Lighter grayish-blue (inner area)
+    public static final int SLOT_BACKGROUND = 0xFFCED8E0;     // Slightly darker grayish-blue (slot background)
+    
+    public static final int PROGRESS_BACKGROUND = 0xFFCED8E0; // Slightly darker grayish-blue for progress background
+    public static final int PROGRESS_FILL = 0xFF66BB6A;       // Muted Green for progress bar
+    
+    public static final int FUEL_BACKGROUND = 0xFFCED8E0;     // Slightly darker grayish-blue for fuel background
+    public static final int FUEL_FILL = 0xFFFF7043;          // Muted Orange for fuel gauge
+    
+    public static final int BORDER_LIGHT = 0xFFB0BEC5;        // Lighter grayish-blue border
+    public static final int BORDER_DARK = 0xFFA1ACB3;         // Darker grayish-blue border
+  }
+
   public static final Class<?>[] MECHANICAL_CRAFTER_SPECIAL_RECIPES = new Class<?>[]{
       TippedArrowRecipe.class,
       FireworkRocketRecipe.class,
