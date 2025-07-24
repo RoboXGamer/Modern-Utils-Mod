@@ -60,7 +60,7 @@ public class JEIPlugin implements IModPlugin {
       List<Rect2i> areas = new ArrayList<>();
 
       // Only add the addon tab area if it's open
-      var tab = containerScreen.getMenu().getBlockEntity().getAddonManager().getAddonTab();
+      var tab = containerScreen.getAddonManager().getAddonTab();
       if (tab != null && tab.isOpen()) {
         // Get the tab dimensions and position
         int tabX = containerScreen.getGuiLeft() + containerScreen.getXSize(); // Position at the right edge of the GUI
@@ -101,7 +101,7 @@ public class JEIPlugin implements IModPlugin {
     public @NotNull List<Rect2i> getGuiExtraAreas(MechanicalFurnaceScreen containerScreen) {
       List<Rect2i> areas = new ArrayList<>();
       // Only add the addon tab area if it's open
-      var tab = containerScreen.getMenu().getBlockEntity().getAddonManager().getAddonTab();
+      var tab = containerScreen.getAddonManager().getAddonTab();
       if (tab != null && tab.isOpen()) {
         // Get the tab dimensions and position
         int tabX = containerScreen.getGuiLeft() + containerScreen.getXSize(); // Position at the right edge of the GUI

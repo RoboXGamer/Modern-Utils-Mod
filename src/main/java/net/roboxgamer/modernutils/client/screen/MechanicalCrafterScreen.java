@@ -23,6 +23,7 @@ import net.roboxgamer.modernutils.menu.OutputSlotItemHandler;
 import net.roboxgamer.modernutils.network.RedstoneModePayload;
 import net.roboxgamer.modernutils.network.RemainItemTogglePayload;
 import net.roboxgamer.modernutils.network.SlotStatePayload;
+import net.roboxgamer.modernutils.util.AddonClientManager;
 import net.roboxgamer.modernutils.util.AddonManager;
 import net.roboxgamer.modernutils.util.Constants;
 import net.roboxgamer.modernutils.util.RedstoneManager;
@@ -74,6 +75,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
   private float lastProgress = 0f;
   private float visualProgress = 0f;
   private AddonManager addonManager;
+  private AddonClientManager addonClientManager;
 
   public MechanicalCrafterScreen(MechanicalCrafterMenu menu, Inventory playerInv, Component title) {
     super(menu, playerInv, title);
@@ -101,6 +103,7 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
       this.blockEntity = mcbe;
       this.redstoneManager = this.blockEntity.getRedstoneManager();
       this.addonManager = this.blockEntity.getAddonManager();
+      this.addonClientManager = new AddonClientManager(this.addonManager);
 
     } else {
       ModernUtilsMod.LOGGER.error("Mechanical Crafter Screen: BlockEntity is not a MechanicalCrafterBlockEntity!");
@@ -142,9 +145,10 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         92, 92, Component.empty(), ExtendedButton.WidgetPosition.BOTTOM_LEFT);
     addRenderableWidget(SideConfigTab);
 
-    this.addonManager.createAddonTab(this.player, this);
-    addRenderableWidget(this.addonManager.getAddonTab());
-    addRenderableWidget(this.addonManager.getAddonConfigButton());
+    // Create addon tab and button using the client manager
+    this.addonClientManager.createAddonTab(this.player, this);
+    addRenderableWidget(this.addonClientManager.getAddonTab());
+    addRenderableWidget(this.addonClientManager.getAddonConfigButton());
 
     this.sideConfigBtn = new ExtendedButton(
         "Config_Btn",
@@ -309,13 +313,6 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
     guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
   }
 
-  // private void renderWidgets(GuiGraphics guiGraphics, int mouseX, int mouseY,
-  // float partialTick) {
-  // for (Renderable renderable : this.renderables) {
-  // renderable.render(guiGraphics, mouseX, mouseY, partialTick);
-  // }
-  // }
-
   private void renderMyLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
     guiGraphics.drawString(this.font, Component.literal("Input"), this.leftPos + 8, this.topPos + 80, 0x404040, false);
     guiGraphics.drawString(this.font, Component.literal("Output"), this.leftPos + 8, this.topPos + 112, 0x404040,
@@ -329,40 +326,23 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
 
   public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
     super.render(guiGraphics, mouseX, mouseY, partialTick);
-    // renderTransparentBackground(guiGraphics);
-    // this.renderScreen(guiGraphics, mouseX, mouseY, partialTick);
-    // this.renderWidgets(guiGraphics, mouseX, mouseY, partialTick);
 
     this.renderProgressBar(guiGraphics, partialTick); // Render the progress bar with partialTick
     this.renderMyLabels(guiGraphics, mouseX, mouseY);
     this.renderTooltip(guiGraphics, mouseX, mouseY);
-
-    // ModernUtils.LOGGER.debug("Mouse X: {}, Mouse Y: {}", mouseX, mouseY);
-
-    if (this.hoveredSlot instanceof OutputSlotItemHandler
-        && !this.menu.isSlotDisabled(this.hoveredSlot.getSlotIndex())
-        && this.menu.getCarried().isEmpty()
-        && !this.hoveredSlot.hasItem()
-        && !this.player.isSpectator()) {
-      guiGraphics.renderTooltip(this.font, DISABLED_SLOT_TOOLTIP, mouseX, mouseY);
-    }
   }
 
   @Override
   public void renderSlot(@NotNull GuiGraphics guiGraphics, @NotNull Slot slot) {
     // Define the range of slot indices for addon slots
-    int addonStartIndex = MechanicalCrafterMenu.INPUT_SLOTS_COUNT + MechanicalCrafterMenu.OUTPUT_SLOTS_COUNT + 10; // 10
-                                                                                                                   // is
-                                                                                                                   // for
-                                                                                                                   // crafting
-                                                                                                                   // slots
+    int addonStartIndex = MechanicalCrafterMenu.INPUT_SLOTS_COUNT + MechanicalCrafterMenu.OUTPUT_SLOTS_COUNT + 10; // 10 is for crafting slots
     int addonEndIndex = addonStartIndex + this.addonManager.ADDON_SLOTS_COUNT;
 
     // Check if this slot is an addon slot
     if (slot.index >= addonStartIndex && slot.index < addonEndIndex) {
       // Only render addon slots when both the tab is open and the slot is active
-      if (this.addonManager.getAddonTab().isOpen() && slot.isActive()) {
-        this.addonManager.renderAddonSlot(guiGraphics, slot);
+      if (this.addonClientManager.getAddonTab().isOpen() && slot.isActive()) {
+        this.addonClientManager.renderAddonSlot(guiGraphics, slot);
         super.renderSlot(guiGraphics, slot);
       }
     }
@@ -468,12 +448,15 @@ public class MechanicalCrafterScreen extends AbstractContainerScreen<MechanicalC
         this.leftPos + this.imageWidth - BORDER_THICKNESS, BAR_Y_POS + BAR_HEIGHT - BORDER_THICKNESS,
         0xFF000000); // Black background
 
-    // Only draw the progress fill if there is any progress
+    // Draw progress (blue progress bar)
     if (progressWidth > 0) {
-      // Draw progress fill (white fill) with the interpolated width
       guiGraphics.fill(this.leftPos + BORDER_THICKNESS, BAR_Y_POS + BORDER_THICKNESS,
           this.leftPos + BORDER_THICKNESS + progressWidth, BAR_Y_POS + BAR_HEIGHT - BORDER_THICKNESS,
-          0xFFFFFFFF); // White fill
+          0xFF0088FF); // Blue progress
     }
+  }
+  
+  public AddonClientManager getAddonManager() {
+    return this.addonClientManager;
   }
 }

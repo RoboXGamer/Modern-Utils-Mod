@@ -1,21 +1,13 @@
 package net.roboxgamer.modernutils.util;
 
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
-import net.roboxgamer.modernutils.client.screen.AnimatedTab;
-import net.roboxgamer.modernutils.client.screen.ExtendedButton;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -24,10 +16,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * AddonManager handles addon-related functionality for blocks that support
- * addons.
- * It manages addon slots and provides methods for rendering and handling addon
- * slots.
+ * AddonManager handles server-side addon functionality for blocks that support addons.
+ * It manages addon slots and provides methods for handling addon slots.
  */
 public class AddonManager {
   private final BlockEntity blockEntity;
@@ -52,12 +42,8 @@ public class AddonManager {
   // List of addon slot handlers for managing slot states
   private List<AddonSlotItemHandler> addonSlotHandlers;
 
-  private AnimatedTab addonTab;
-  private ExtendedButton addonConfigBtn;
-
   /**
-   * Creates a new AddonManager with the specified addon slots count and allowed
-   * items.
+   * Creates a new AddonManager with the specified addon slots count and allowed items.
    */
   public AddonManager(BlockEntity blockEntity, int addonSlotCount, Set<Item> allowedItems) {
     this.blockEntity = blockEntity;
@@ -75,7 +61,6 @@ public class AddonManager {
         return 1; // Limit to 1 item per addon slot
       }
     };
-
   }
 
   /**
@@ -141,84 +126,7 @@ public class AddonManager {
   public boolean toggleAddonSlots() {
     boolean newState = !this.addonSlotHandlers.getFirst().isActive();
     this.addonSlotHandlers.forEach(handler -> handler.setActive(newState));
-    if (this.addonTab != null) {
-      // Synchronize tab state with slot state
-      if (this.addonTab.isOpen() != newState) {
-        this.addonTab.toggleOpen();
-      }
-    }
     return true;
-  }
-
-  /**
-   * Create the addon tab and config button for the screen.
-   */
-  public void createAddonTab(Player player, AbstractContainerScreen<?> screen) {
-    // Create addon tab in top right corner
-    this.addonTab = new AnimatedTab(46, 68, null, ExtendedButton.WidgetPosition.TOP_RIGHT);
-    this.addonSlotHandlers.forEach(handler -> handler.setActive(false));
-
-    // Create addon config button in top right
-    this.addonConfigBtn = new ExtendedButton(
-        "AddonConfig_Btn",
-        24, 24,
-        Component.literal("Addons"),
-        true,
-        ExtendedButton.WidgetPosition.TOP_RIGHT,
-        (button, clickAction, mouseX, mouseY) -> {
-          if (this.addonTab != null) {
-
-            boolean isOpen = this.addonTab.toggleOpen();
-            this.setAddonSlotHandlerStates(isOpen);
-            screen.getMinecraft().gameMode
-                .handleInventoryButtonClick(
-                    screen.getMenu().containerId,
-                    AddonManager.ADDON_TAB_TOGGLE_BUTTON_ID);
-          }
-        },
-        player) {
-      @Override
-      public void renderIcon(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick,
-          ExtendedButton extendedButton) {
-        float scale = 1;
-        float offset = (extendedButton.getWidth() - (16 * scale)) / 2; // Calculate offset for centering
-
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(extendedButton.getX() + offset, extendedButton.getY() + offset, 0);
-        guiGraphics.pose().scale(scale, scale, 1);
-        guiGraphics.renderFakeItem(Items.DIAMOND_BLOCK.getDefaultInstance(),
-            0,
-            0);
-        guiGraphics.pose().popPose();
-      }
-    };
-  }
-
-  private void setAddonSlotHandlerStates(boolean isOpen) {
-    this.addonSlotHandlers.forEach(handler -> handler.setActive(isOpen));
-  }
-
-  /**
-   * Render an addon slot in the GUI.
-   */
-  public void renderAddonSlot(GuiGraphics guiGraphics, Slot slot) {
-    if (addonTab != null && addonTab.isOpen() && slot.isActive()) {
-      guiGraphics.blitSprite(ADDON_SLOT_LOCATION_SPRITE, slot.x - 1, slot.y - 1, 18, 18);
-    }
-  }
-
-  /**
-   * Get the addon tab widget.
-   */
-  public AnimatedTab getAddonTab() {
-    return this.addonTab;
-  }
-
-  /**
-   * Get the addon config button widget.
-   */
-  public ExtendedButton getAddonConfigButton() {
-    return this.addonConfigBtn;
   }
 
   /**

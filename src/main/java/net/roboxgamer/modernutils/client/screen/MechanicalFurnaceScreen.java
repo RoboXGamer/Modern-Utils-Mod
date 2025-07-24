@@ -17,6 +17,7 @@ import net.roboxgamer.modernutils.client.screen.widgets.RedstoneButton;
 import net.roboxgamer.modernutils.client.screen.widgets.SlotWidget;
 import net.roboxgamer.modernutils.item.ModItems;
 import net.roboxgamer.modernutils.menu.MechanicalFurnaceMenu;
+import net.roboxgamer.modernutils.util.AddonClientManager;
 import net.roboxgamer.modernutils.util.AddonManager;
 import net.roboxgamer.modernutils.util.Constants;
 import org.jetbrains.annotations.NotNull;
@@ -48,8 +49,8 @@ public class MechanicalFurnaceScreen extends AbstractContainerScreen<MechanicalF
   private ExtendedButton frontSideBtn;
   private Map<Constants.Sides, SideConfigButton> sideButtons = new HashMap<>();
   private MechanicalFurnaceBlockEntity blockEntity;
-  private AnimatedTab AddonTab;
   private AddonManager addonManager;
+  private AddonClientManager addonClientManager;
   
   
   public MechanicalFurnaceScreen(MechanicalFurnaceMenu menu, Inventory playerInv, Component title) {
@@ -71,6 +72,7 @@ public class MechanicalFurnaceScreen extends AbstractContainerScreen<MechanicalF
       if (blockEntity instanceof MechanicalFurnaceBlockEntity be) {
         this.blockEntity = be;
         this.addonManager = this.blockEntity.getAddonManager();
+        this.addonClientManager = new AddonClientManager(this.addonManager);
       } else {
         return;
       }
@@ -115,16 +117,10 @@ public class MechanicalFurnaceScreen extends AbstractContainerScreen<MechanicalF
       );
       addRenderableWidget(sideConfigTab);
       
-      // Create addon tab and button
-      this.addonManager.createAddonTab(this.player, this);
-      addRenderableWidget(this.addonManager.getAddonTab());
-      addRenderableWidget(this.addonManager.getAddonConfigButton());
-      
-      // Create addon tab in top right corner
-      this.AddonTab = new AnimatedTab(
-          46, 68, Component.empty(), ExtendedButton.WidgetPosition.TOP_RIGHT
-      );
-      addRenderableWidget(AddonTab);
+      // Create addon tab and button using the client manager
+      this.addonClientManager.createAddonTab(this.player, this);
+      addRenderableWidget(this.addonClientManager.getAddonTab());
+      addRenderableWidget(this.addonClientManager.getAddonConfigButton());
       
       // Create side config button
       this.sideConfigBtn = new ExtendedButton(
@@ -154,8 +150,6 @@ public class MechanicalFurnaceScreen extends AbstractContainerScreen<MechanicalF
         }
       };
       addRenderableWidget(this.sideConfigBtn);
-      
-      // TODO: ADD ADDON TAB BUTTON
       
       // Create auto import/export buttons
       this.autoImportBtn = new ExtendedButton(
@@ -339,12 +333,16 @@ public class MechanicalFurnaceScreen extends AbstractContainerScreen<MechanicalF
     // Check if this slot is an addon slot
     if (slot.index >= addonStartIndex && slot.index < addonEndIndex) {
       // Only render addon slots when both the tab is open and the slot is active
-      if (this.addonManager.getAddonTab().isOpen() && slot.isActive()) {
-        this.addonManager.renderAddonSlot(guiGraphics, slot);
+      if (this.addonClientManager.getAddonTab().isOpen() && slot.isActive()) {
+        this.addonClientManager.renderAddonSlot(guiGraphics, slot);
         super.renderSlot(guiGraphics, slot);
       }
     } else {
       super.renderSlot(guiGraphics, slot);
     }
+  }
+  
+  public AddonClientManager getAddonManager() {
+    return this.addonClientManager;
   }
 }
