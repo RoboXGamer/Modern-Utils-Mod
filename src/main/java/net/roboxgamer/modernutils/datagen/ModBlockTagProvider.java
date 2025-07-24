@@ -23,6 +23,7 @@ public class ModBlockTagProvider extends BlockTagsProvider {
         .add(ModBlocks.EXAMPLE_BLOCK.get())
         .add(ModBlocks.MAGIC_BLOCK.get())
         .add(ModBlocks.BATTERY_BLOCK.get())
+        .add(ModBlocks.FLUID_TANK_BLOCK.get())
         .add(ModBlocks.MECHANICAL_FURNACE_BLOCK.get());
 
     this.tag(BlockTags.MINEABLE_WITH_AXE)

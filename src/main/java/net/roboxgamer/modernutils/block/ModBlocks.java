@@ -44,6 +44,12 @@ public class ModBlocks {
   public static final DeferredBlock<MechanicalFurnaceBlock> MECHANICAL_FURNACE_BLOCK = registerBlock("mechanical_furnace_block", ()->
       new MechanicalFurnaceBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.FURNACE)));
   
+  public static final DeferredBlock<RedstoneClockBlock> REDSTONE_CLOCK_BLOCK = registerWIPBlock("redstone_clock_block", ()->
+      new RedstoneClockBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.STONE)));
+  
+  public static final DeferredBlock<FluidTankBlock> FLUID_TANK_BLOCK = registerWIPBlock("fluid_tank_block", ()->
+      new FluidTankBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.IRON_BLOCK)));
+  
   private static <T extends Block> DeferredBlock<T> registerWIPBlock(String name, Supplier<T> block) {
     DeferredBlock<T> toReturn = WIP_BLOCKS.register(name, block);
     registerWIPBlockItem(name, toReturn);

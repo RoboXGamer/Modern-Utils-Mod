@@ -7,12 +7,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.roboxgamer.modernutils.ModernUtilsMod;
 import net.roboxgamer.modernutils.block.ModBlocks;
-import net.roboxgamer.modernutils.block.entity.custom.BatteryBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.ExampleInventoryBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MagicBlockBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MechanicalCrafterBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MechanicalFurnaceBlockEntity;
-import net.roboxgamer.modernutils.block.entity.custom.MiniChestBlockEntity;
+import net.roboxgamer.modernutils.block.entity.custom.*;
 
 import java.util.function.Supplier;
 
@@ -54,6 +49,18 @@ public class ModBlockEntities {
       BLOCK_ENTITIES.register("mechanical_furnace_be", () -> BlockEntityType.Builder.
           of(MechanicalFurnaceBlockEntity::new,
              ModBlocks.MECHANICAL_FURNACE_BLOCK.get())
+          .build(null));
+  
+  public static final Supplier<BlockEntityType<RedstoneClockBlockEntity>> REDSTONE_CLOCK_BE =
+      BLOCK_ENTITIES.register("redstone_clock_be", () -> BlockEntityType.Builder.
+          of(RedstoneClockBlockEntity::new,
+             ModBlocks.REDSTONE_CLOCK_BLOCK.get())
+          .build(null));
+  
+  public static final Supplier<BlockEntityType<FluidTankBlockEntity>> FLUID_TANK_BE =
+      BLOCK_ENTITIES.register("fluid_tank_be", () -> BlockEntityType.Builder.
+          of(FluidTankBlockEntity::new,
+             ModBlocks.FLUID_TANK_BLOCK.get())
           .build(null));
   
   

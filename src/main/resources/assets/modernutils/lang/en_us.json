@@ -32,5 +32,7 @@
   "screen.modernutils.mechanical_furnace.progress": "Progress: %d%%",
   "screen.modernutils.mechanical_furnace.fuel_remaining": "Fuel: %d%%",
   "screen.modernutils.mechanical_furnace.title": "Mechanical Furnace",
-  "screen.modernutils.mechanical_furnace.inventory": "Inventory"
+  "screen.modernutils.mechanical_furnace.inventory": "Inventory",
+  "block.modernutils.redstone_clock_block": "Redstone Clock",
+  "block.modernutils.fluid_tank_block": "Fluid Tank"
 }

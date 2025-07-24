@@ -163,6 +163,10 @@ public class ModernUtilsMod {
         Capabilities.ItemHandler.BLOCK,
         ModBlockEntities.MECHANICAL_FURNACE_BE.get(),
         (be, side) -> be.getCapabilityHandler(side));
+    event.registerBlockEntity(
+        Capabilities.FluidHandler.BLOCK,
+        ModBlockEntities.FLUID_TANK_BE.get(),
+        (be, side) -> be.getFluidHandler());
   }
 
   @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
