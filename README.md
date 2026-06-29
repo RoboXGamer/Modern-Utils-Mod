@@ -1,3 +1,8 @@
+[![CurseForge Downloads](https://img.shields.io/curseforge/dt/1132821?logo=curseforge&color=orange)](https://www.curseforge.com/minecraft/mc-mods/modern-utils)
+[![Modrinth Downloads](https://img.shields.io/modrinth/dt/modernutils?logo=modrinth&color=green)](https://modrinth.com/mod/modernutils)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![NeoForge](https://img.shields.io/badge/NeoForge-1.21.1-blue)](https://neoforged.net/)
+
 ### Modern Utils Mod Description
 
 **Overview:**  
