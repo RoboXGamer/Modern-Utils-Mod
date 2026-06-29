@@ -13,7 +13,7 @@ Modern Utils introduces innovative blocks that enhance automation and efficiency
 **Features:**
 
 - **Mechanical Crafter Block:**  
-  The Mechanical Crafter is a powerful block designed to automate the crafting process. It interfaces seamlessly with crafting tables, featuring auto-import and auto-export functionality to streamline resource management. With advanced redstone control and smart automation features, players can create complex crafting systems to optimize their workflows.
+  The Mechanical Crafter is a powerful block designed to automate the crafting process. It interfaces seamlessly with crafting tables, featuring auto-import and auto-export functionality to streamline resource management. With advanced redstone control and smart automation features, players can create complex crafting systems to optimize their workflows. Integrates with JEI for recipe transfers and Jade for block status display.
 
 - **Magic Block:**  
   The Magic Block serves as a mystical enhancer for blocks placed above it, significantly accelerating their tick rate. Whether it's a machine or a crop, the Magic Block boosts productivity, allowing for faster growth and processing times. This block is ideal for players looking to maximize their efficiency and output.
