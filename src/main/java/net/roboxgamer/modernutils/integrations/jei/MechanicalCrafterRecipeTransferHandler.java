@@ -104,6 +104,7 @@ public class MechanicalCrafterRecipeTransferHandler implements IRecipeTransferHa
   }
   
   @Override
+  @SuppressWarnings("removal")
   public @Nullable IRecipeTransferError transferRecipe(@NotNull MechanicalCrafterMenu container,
                                                        @NotNull RecipeHolder<CraftingRecipe> recipe,
                                                        @NotNull IRecipeSlotsView recipeSlots,

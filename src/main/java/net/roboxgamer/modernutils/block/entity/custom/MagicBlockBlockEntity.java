@@ -36,42 +36,54 @@ public class MagicBlockBlockEntity extends BlockEntity implements MenuProvider {
     super(ModBlockEntities.MAGIC_BLOCK_BE.get(), pos, blockState);
   }
 
+  private static final ThreadLocal<java.util.Set<BlockPos>> TICKING_MAGIC_BLOCKS =
+      ThreadLocal.withInitial(java.util.HashSet::new);
+
+  @SuppressWarnings("unchecked")
   public void tick() {
-    this.tc++;
-
-    Level level = this.getLevel();
-    BlockPos pos = this.getBlockPos();
-    if (level == null)
-      return;
-    if (level.isClientSide() && getRenderOutline()) {
-      level.sendBlockUpdated(pos, getBlockState(), getBlockState(), 3);
-    }
-    
-    BlockPos targetPos = pos.offset(getOffsetX(), getOffsetY(), getOffsetZ());
-    // Only prevent ticking if the target is itself (offset 0,0,0)
-    if (targetPos.equals(pos)) {
+    // Detect cycles: if this MagicBlock is already being ticked on this thread, skip to avoid infinite recursion
+    if (!TICKING_MAGIC_BLOCKS.get().add(this.getBlockPos())) {
       return;
     }
+    try {
+      this.tc++;
 
-    BlockState state = level.getBlockState(targetPos);
-    BlockEntity blockEntity = level.getBlockEntity(targetPos);
+      Level level = this.getLevel();
+      BlockPos pos = this.getBlockPos();
+      if (level == null)
+        return;
+      if (level.isClientSide() && getRenderOutline()) {
+        level.sendBlockUpdated(pos, getBlockState(), getBlockState(), 3);
+      }
 
-    for (int i = 0; i < getSpeed(); i++) {
-      if (blockEntity != null) {
-        // noinspection unchecked
-        BlockEntityTicker<BlockEntity> ticker = state.getTicker(level,
-            (BlockEntityType<BlockEntity>) blockEntity.getType());
-        if (ticker != null) {
-          ticker.tick(level, targetPos, state, blockEntity);
-        }
-      } else if (state.isRandomlyTicking()) {
-        if (level instanceof ServerLevel serverLevel) {
-          int randomTickSpeed = serverLevel.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
-          if (randomTickSpeed > 0 && serverLevel.random.nextInt(randomTickSpeed) == 0) {
-            state.randomTick(serverLevel, targetPos, serverLevel.random);
+      BlockPos targetPos = pos.offset(getOffsetX(), getOffsetY(), getOffsetZ());
+      // Only prevent ticking if the target is itself (offset 0,0,0)
+      if (targetPos.equals(pos)) {
+        return;
+      }
+
+      BlockState state = level.getBlockState(targetPos);
+      BlockEntity blockEntity = level.getBlockEntity(targetPos);
+
+      for (int i = 0; i < getSpeed(); i++) {
+        if (blockEntity != null) {
+          // noinspection unchecked
+          BlockEntityTicker<BlockEntity> ticker = state.getTicker(level,
+              (BlockEntityType<BlockEntity>) blockEntity.getType());
+          if (ticker != null) {
+            ticker.tick(level, targetPos, state, blockEntity);
+          }
+        } else if (state.isRandomlyTicking()) {
+          if (level instanceof ServerLevel serverLevel) {
+            int randomTickSpeed = serverLevel.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
+            if (randomTickSpeed > 0 && serverLevel.random.nextInt(randomTickSpeed) == 0) {
+              state.randomTick(serverLevel, targetPos, serverLevel.random);
+            }
           }
         }
       }
+    } finally {
+      TICKING_MAGIC_BLOCKS.get().remove(this.getBlockPos());
     }
   }
   

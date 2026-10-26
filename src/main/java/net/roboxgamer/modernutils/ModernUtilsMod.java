@@ -9,6 +9,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.roboxgamer.modernutils.block.ModBlocks;
+import net.roboxgamer.modernutils.datagen.DataGenerator;
 import net.roboxgamer.modernutils.block.entity.ModBlockEntities;
 import net.roboxgamer.modernutils.block.entity.custom.renderer.MagicBlockEntityRenderer;
 import net.roboxgamer.modernutils.block.entity.custom.renderer.MechanicalCrafterBlockEntityRenderer;
@@ -26,11 +27,10 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
@@ -52,6 +52,13 @@ public class ModernUtilsMod {
   public ModernUtilsMod(IEventBus modEventBus, ModContainer modContainer) {
     // Register the commonSetup method for modloading
     modEventBus.addListener(this::commonSetup);
+
+    // Register mod-bus event subscribers manually (bus() annotation is deprecated for removal)
+    modEventBus.register(Config.class);
+    modEventBus.register(DataGenerator.class);
+    if (FMLLoader.getDist().isClient()) {
+      modEventBus.register(ClientModEvents.class);
+    }
 
     NeoForge.EVENT_BUS.register(this);
 
@@ -169,7 +176,6 @@ public class ModernUtilsMod {
         (be, side) -> be.getFluidHandler());
   }
 
-  @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
   public static class ClientModEvents {
     @SubscribeEvent
     public static void onClientSetup(@NotNull FMLClientSetupEvent event) {
